@@ -1293,8 +1293,9 @@ function floatText(text,color){
 
 function render(){
   if(!S.started){renderTitle();return;}
-  if(S.phase==='over'){renderOver();return;}
+  if(S.phase==='over'){clearSave();renderOver();return;}
   if(S.phase==='act2'){renderAct2();return;}
+  autoSave();                       // 每次状态变化都存一次（内部节流）
   $('app').innerHTML=`
     ${renderTop()}
     <div class="layout">
@@ -1347,6 +1348,19 @@ function startAct2(){
 function forceEnd(){S.over=true;S.phase='over';render();}
 
 function renderTitle(){
+  const sv=saveInfo();
+  const resumeBtn=sv?`
+    <div style="width:100%;max-width:620px;margin:0 auto 14px;padding:14px 18px;border-radius:14px;
+                border:1px solid var(--brand);background:linear-gradient(180deg,rgba(18,160,110,.08),rgba(18,160,110,.03));
+                display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;text-align:left">
+      <div>
+        <div style="font-weight:800;font-size:14px;color:var(--brand)">📂 检测到上次没玩完的进度</div>
+        <div class="tiny muted" style="margin-top:4px">
+          第 <b style="color:var(--txt)">${sv.day}</b> 天 · ${sv.act>=2?'连锁扩张阶段':'第一幕 · 本区争霸'} · 净资产 <b style="color:var(--txt)">${money(sv.net)}</b>
+        </div>
+      </div>
+      <button class="btn gold" style="padding:11px 26px;font-size:14px" onclick="resumeGame()">继 续 游 戏</button>
+    </div>`:'';
   $('app').innerHTML=`
   <div class="title-wrap">
     <div class="brandmark">SECONDHAND LUXURY</div>
@@ -1368,15 +1382,96 @@ function renderTitle(){
       <div><div class="fi">🚨</div><div class="ft">假货风险</div><div class="fd">高仿混进来怎么办？销毁，还是冒险混卖？</div></div>
       <div><div class="fi">🌪️</div><div class="ft">突发事件</div><div class="fd">爆款视频、黑粉差评、同行截胡、明星同款</div></div>
     </div>
-    <div style="margin:30px 0 10px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-      <button class="btn gold" style="padding:14px 44px;font-size:16px;border-radius:12px" onclick="startGame()">开 始 经 营</button>
+    ${resumeBtn}
+    <div style="margin:${sv?'0':'30px'} 0 10px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <button class="btn ${sv?'ghost':'gold'}" style="padding:14px 44px;font-size:16px;border-radius:12px" onclick="startGame()">${sv?'重新开始一局':'开 始 经 营'}</button>
       <button class="btn ghost" style="padding:14px 26px" onclick="showHelp()">玩法说明</button>
     </div>
     <div class="brandmark-foot">二奢模拟器 · LUXURY RESALE SIMULATOR</div>
   </div>`;
 }
 
-function startGame(){try{localStorage.removeItem('ershe_save');}catch(e){}track('game_start');newGame();}
+/* ============================================================
+   存档 —— 解决「玩到一半退出，进度全丢」
+   30 天的局要玩十几分钟，手机上切出去回个微信就可能被系统回收，
+   所以状态变化时自动存一次，退出后可以继续。
+   ============================================================ */
+const SAVE_KEY='ershe_save';
+const SAVE_VER=1;
+
+function saveGame(){
+  try{
+    if(!S||!S.started||S.over)return false;
+    // Infinity 过不了 JSON，用哨兵替换（第二幕的 maxDay 是 Infinity）
+    const data=JSON.stringify({v:SAVE_VER,s:S},function(k,val){
+      return val===Infinity?'__INF__':val;
+    });
+    localStorage.setItem(SAVE_KEY,data);
+    return true;
+  }catch(e){ return false; }   // 隐私模式/存储不足时静默失败，不影响游戏
+}
+
+function loadGame(){
+  try{
+    const raw=localStorage.getItem(SAVE_KEY);
+    if(!raw)return null;
+    const o=JSON.parse(raw,function(k,val){
+      return val==='__INF__'?Infinity:val;
+    });
+    if(!o||o.v!==SAVE_VER||!o.s)return null;
+    const st=o.s;
+    // 完整性校验：旧版本存档结构对不上时宁可丢弃，也不要白屏
+    if(typeof st.day!=='number'||!Array.isArray(st.staff)||!Array.isArray(st.inventory)
+       ||!Array.isArray(st.offers)||!Array.isArray(st.customers)) return null;
+    if(!st.rival||typeof st.share!=='number'||!st.daily)return null;
+    return st;
+  }catch(e){ return null; }
+}
+
+function clearSave(){ try{localStorage.removeItem(SAVE_KEY);}catch(e){} }
+
+/* 给开场页显示「第几天 / 多少钱」用的摘要 */
+function saveInfo(){
+  const st=loadGame();
+  if(!st)return null;
+  const cm=[1.10,1.00,0.92,0.82,0.70,0.55];
+  const inv=(st.inventory||[]).reduce(function(a,it){
+    return a+(it.sellBase||0)*(cm[it.cond]||1);
+  },0);
+  return {day:st.day,act:st.act||1,net:Math.round((st.cash||0)+inv)};
+}
+
+function resumeGame(){
+  const st=loadGame();
+  if(!st){toast('存档读不出来，开一局新的吧','#dc2626');renderTitle();return;}
+  S=st;
+  __overTracked=false;
+  track('game_resume',{day:S.day});
+  log('📂 已读取存档，继续第 '+S.day+' 天','gold');
+  render();
+}
+
+/* 节流自动保存：render() 每次都调，但不想写太频繁 */
+let __lastSave=0;
+function autoSave(){
+  const now=Date.now();
+  if(now-__lastSave<800)return;
+  __lastSave=now;
+  saveGame();
+}
+/* 切到后台/关闭页面时立刻存一次 —— 手机上这一步最关键 */
+try{
+  document.addEventListener('visibilitychange',function(){ if(document.hidden)saveGame(); });
+  window.addEventListener('pagehide',function(){ saveGame(); });
+  window.addEventListener('beforeunload',function(){ saveGame(); });
+}catch(e){}
+
+function startGame(){
+  clearSave();
+  __overTracked=false;
+  track('game_start');
+  newGame();
+}
 function showHelp(){
   if(document.getElementById('helpMask'))return;
   const m=document.createElement('div');
@@ -2490,7 +2585,8 @@ window.doCompete=doCompete;window.launchRegionWar=launchRegionWar;window.assignM
 window.closeBranch=closeBranch;window.startAct2=startAct2;window.forceEnd=forceEnd;
 window.openBranch=openBranch;window.myPower=myPower;window.RMAP=RMAP;
 window.showManagerPick=showManagerPick;window.doAssign=doAssign;
-window.showShareCard=showShareCard;window.ctaClick=ctaClick;window.buildShareCard=buildShareCard;window.PROMO=PROMO;window.track=track;
+window.showShareCard=showShareCard;window.ctaClick=ctaClick;
+window.resumeGame=resumeGame;window.saveGame=saveGame;window.loadGame=loadGame;window.clearSave=clearSave;window.saveInfo=saveInfo;window.buildShareCard=buildShareCard;window.PROMO=PROMO;window.track=track;
 </script>
 </body>
 </html>
