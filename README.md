@@ -32,17 +32,15 @@ Netlify 关联了仓库的话，push 完自动部署。
 deploy/            发布目录，只有这里面的东西会上线
   index.html       源文件的副本
   _headers         响应头配置
-docs/              文档，不会发布
-  部署说明.md        各平台部署、更新流程、全部可调参数
-  国内部署指南.md     想在国内跑得快、或者要在微信里分享的话看这个
-  nginx.conf       自建服务器用的配置
-  推广文案与风险检查.md  抖音/小红书/B站的文案，以及平台规则风险
 sync.ps1           源文件同步到 deploy/
 set-qr.ps1         把二维码内嵌进游戏（可选）
 netlify.toml       告诉 Netlify 发布目录是 deploy/
 ```
 
-`deploy/` 里的东西全都会公开访问到，所以文档一律放 `docs/`。
+`deploy/` 里的东西全都会公开访问到，所以里面只放游戏本身。
+
+部署、推广那些文档不放在仓库里，如果你本地有 `docs/` 目录，那是自己的副本，
+已经被 `.gitignore` 排除了，不会推送上去。
 
 ## 分享战报图
 
@@ -68,7 +66,9 @@ const PROMO={
 
 ## 想调数值
 
-看 [docs/部署说明.md](docs/部署说明.md) 里的参数对照表，有变量名和当前行号。
+参数集中在源码顶部的几个常量里（`BRANDS`、`CONDITIONS`、`CUSTOMER_TYPES`、`AD_TIERS`、
+`LIVE_TIERS`、`REGIONS` 这些），搜名字就能找到。改完刷新页面即可，主题色在 `<style>`
+开头的 `:root{}` 里（第 15~21 行）。
 
 ## 一些技术上的事
 
