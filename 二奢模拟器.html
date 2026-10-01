@@ -256,7 +256,7 @@ const BMAP={};BRANDS.forEach(b=>BMAP[b.name]=b);
 
 const ROLES={
   buyer:    {name:'回收师',ic:'🎒',desc:'带回货源 · 初判真伪 · 压价谈判'},
-  appraiser:{name:'鉴定师',ic:'🔍',desc:'专业鉴定 · 准确率 88% 起，满技能 99%'},
+  appraiser:{name:'鉴定师',ic:'🔍',desc:'专业鉴定 · 会诊加成，人越多越准'},
   care:     {name:'护理师',ic:'💧',desc:'翻新护理 · 提升品相与售价'},
   sales:    {name:'销售',  ic:'💼',desc:'接待客户 · 提升议价上限'}
 };
@@ -439,11 +439,22 @@ const trueLabel=it=>it.fake==='genuine'?'真品':(it.fake==='superfake'?'高仿'
 
 /* ============================================================
    鉴定 —— 定位是「保险」：花钱买确定性，不是赌博
-   准确率很高（88% 起，满技能 99%），看走眼的少数情况里
-   多数会诚实说"拿不准"，而不是自信地给出错误结论。
-   一定要避免的是"花钱买了个错答案，系统还当场承认错了"。
+
+   准确率由两部分组成：
+     个人水平  bestSkill × 0.006    →  91% ~ 96%
+     会诊加成  (人数-1) × 0.010     →  每多一位 +1%，封顶 99.5%
+
+   这样两个轴都有意义：光练技能最多 96%，光堆人也就 91% 起。
+   想摸到天花板，得同时把技能练满、并且养一个团队。
+
+   看走眼的少数情况里，绝大多数会诚实说"拿不准"，
+   而不是自信地给出错误结论。一定要避免的是
+   "花钱买了个错答案，系统还当场承认错了"。
    ============================================================ */
-function appraiseAcc(){return clamp(0.88+bestSkill('appraiser')*0.011,0.88,0.99);}
+function appraiseAcc(){
+  const n=Math.max(1,staffOf('appraiser').length);
+  return clamp(0.90+bestSkill('appraiser')*0.006+(n-1)*0.017,0.90,0.995);
+}
 function appraiseRoll(truth){
   if(chance(appraiseAcc()))return truth;
   if(chance(0.78))return 'unsure';                      // 看走眼时，绝大多数会承认拿不准
@@ -1400,7 +1411,7 @@ function renderTitle(){
     </p>
     <div class="feat">
       <div><div class="fi">🎒</div><div class="ft">回收师</div><div class="fd">上门收货，初判真伪，帮你压价砍到卖家肉疼</div></div>
-      <div><div class="fi">🔍</div><div class="ft">鉴定师</div><div class="fd">花鉴定费买确定性，准确率很高。水平不够时会说"拿不准"</div></div>
+      <div><div class="fi">🔍</div><div class="ft">鉴定师</div><div class="fd">花鉴定费买确定性。人多可以会诊，水平不够会说"拿不准"</div></div>
       <div><div class="fi">💧</div><div class="ft">护理师</div><div class="fd">翻新提品相，售价直接上一个台阶</div></div>
       <div><div class="fi">💼</div><div class="ft">销售</div><div class="fd">接待客户，谈价加成，决定你能接多少客</div></div>
     </div>
@@ -1646,7 +1657,7 @@ function showHelp(){
       <li>市面上的货大约 <b>16%</b> 是高仿或假货。收进来卖出去，轻则被退货索赔，重则声望暴跌。</li>
       <li>光看外表分不出来。回收师的 <b>「初判」</b>（💚看真 / 🔴存疑 / 💛拿不准）只有 50%~86% 准，<b>只能当参考，不能当结论</b>。</li>
       <li>拿不准就 <b>送鉴定</b> —— 花一笔鉴定费（约公价的 1.5%），换一个准确得多的判断。</li>
-      <li>鉴定师 <b class="gold-t">开局就有 90% 准</b>，培养到满技能 99%。这笔钱买的是<b>确定性</b>，不是再赌一次。</li>
+      <li>鉴定师 <b class="gold-t">开局就有 91% 准</b>。准确率 = <b>个人水平</b>（练技能，最高 96%）+ <b>会诊加成</b>（每多一位鉴定师 +1%，最高 99.5%）。想更准，要么练人，要么加人。</li>
       <li>水平不够的鉴定师会直接说 <b>「拿不准」</b> —— 注意这不是"他判断是假货"，而是<b>他没能看出来</b>。换个再验一次就行。</li>
       <li>收货台可以送检，收进来的货也可以在库存里补检。<b>复检费用每次翻 1.8 倍</b>，所以第一次就验准最划算。</li>
       <li>没验过的货卖出去，有 <b>18%</b> 概率被客户识破索赔；明知是假还卖，风险升到 <b>34%</b>。</li>
@@ -2117,6 +2128,13 @@ function renderStaff(){
         <button class="btn sm ghost" onclick="hire('${role}')" ${list.length>=3||S.cash<hireCost?'disabled':''}>+ 招聘 ${money(hireCost)}</button>
       </div>`;
     if(list.length===0)h+=`<div class="tiny muted" style="padding:6px 0 4px">暂无${r.name}，${r.desc.split(' · ')[0]}相关操作不可用</div>`;
+    /* 鉴定师的准确率有"会诊加成"，把当前值亮出来，玩家才知道多招人有什么用 */
+    if(role==='appraiser'&&list.length>0){
+      const acc=Math.round(appraiseAcc()*100);
+      h+=`<div class="tiny muted" style="padding:2px 0 6px">当前会诊准确率 <b class="gold-t">${acc}%</b>`
+        + (list.length<3?` · 再招一位 <b>+1.7%</b>`:' · <span class="gold-t">已满编</span>')
+        + `</div>`;
+    }
     list.forEach(s=>{
       const tc=trainCost(s);
       h+=`<div class="staff">
@@ -2134,7 +2152,7 @@ function renderStaff(){
     });
     h+=`</div>`;
   });
-  h+=`<div class="hr"></div><div class="tiny muted">技能越高：货源更多、鉴定更准、护理成功率更高、议价更狠。</div></div>`;
+  h+=`<div class="hr"></div><div class="tiny muted">技能越高：货源更多、鉴定更准、护理成功率更高、议价更狠。鉴定师还有<b>会诊加成</b> —— 人越多看得越准。</div></div>`;
   return h;
 }
 
@@ -2793,7 +2811,7 @@ window.openBranch=openBranch;window.myPower=myPower;window.RMAP=RMAP;
 window.showManagerPick=showManagerPick;window.doAssign=doAssign;
 window.showShareCard=showShareCard;window.ctaClick=ctaClick;
 window.showTutorial=showTutorial;window.finishTutorial=finishTutorial;window.CARD_VER=CARD_VER;window.emojiWorks=emojiWorks;
-window.appraiseRoll=appraiseRoll;window.appraiseAcc=appraiseAcc;window.appraiseLabel=appraiseLabel;window.isKnownFake=isKnownFake;window.isUnsure=isUnsure;
+window.render=render;window.appraiseRoll=appraiseRoll;window.appraiseAcc=appraiseAcc;window.appraiseLabel=appraiseLabel;window.isKnownFake=isKnownFake;window.isUnsure=isUnsure;
 window.resumeGame=resumeGame;window.saveGame=saveGame;window.loadGame=loadGame;window.clearSave=clearSave;window.saveInfo=saveInfo;window.buildShareCard=buildShareCard;window.PROMO=PROMO;window.track=track;
 </script>
 </body>
