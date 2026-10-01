@@ -1,0 +1,12 @@
+# Netlify 配置
+#
+# 这是一个**纯静态站点**：没有构建步骤、没有依赖、没有 npm。
+# 所以不需要 build command，只要告诉 Netlify 发布目录是 deploy/ 就行。
+#
+# 有了这个文件，在 Netlify 后台关联仓库时不用手动填 Publish directory，
+# Netlify 会自动读取这里。
+
+[build]
+  publish = "deploy"
+  # 没有构建命令 —— 不要把 command 留成空的 "npm run build"，
+  # 那会让 Netlify 尝试跑一个不存在的脚本然后部署失败。

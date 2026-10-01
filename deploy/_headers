@@ -1,0 +1,9 @@
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+
+# 整个游戏就是 index.html 这一个文件，缓存它省不了多少带宽，
+# 却会让你每次更新后、用户最长 1 小时还看到旧版本。
+# 所以这里改成每次都用 ETag 回源校验：没变走 304，变了立刻生效。
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate

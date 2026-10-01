@@ -1,0 +1,2221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>二奢模拟器 · 二手奢侈品经营</title>
+<meta name="description" content="二奢模拟器 —— 30 天，一间二手奢侈品店。收货、鉴定、护理、抖音投流、直播带货、同行包展，看你能把 50 万滚成什么。"/>
+<meta name="theme-color" content="#f1f7f4"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="二奢模拟器"/>
+<meta name="format-detection" content="telephone=no"/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230e8a5f'/%3E%3Crect x='16' y='25' width='32' height='25' rx='5' fill='%23ffffff'/%3E%3Cpath d='M24 25v-5a8 8 0 0 1 16 0v5' fill='none' stroke='%23ffffff' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E"/>
+<style>
+:root{
+  --bg:#f1f7f4; --bg2:#ffffff; --card:#ffffff; --card2:#f6fbf8; --card3:#eaf4ee;
+  --line:#e2ede7; --line2:#c6dcd1;
+  --brand:#0e8a5f; --brand2:#0a6b49;
+  --txt:#12261e; --dim:#5d7a6e; --dim2:#93a89f;
+  --green:#12a06e; --red:#dc2626; --blue:#2563eb; --purple:#7c3aed; --pink:#db2777;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;height:100%}
+body{
+  background:
+    radial-gradient(1000px 600px at 15% -10%, #d9f0e5 0%, transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, #e4f5ec 0%, transparent 55%),
+    var(--bg);
+  color:var(--txt);
+  font:14px/1.55 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  overflow-x:hidden;
+}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;font-size:inherit}
+button:disabled{cursor:not-allowed;opacity:.4}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:#c6dcd1;border-radius:8px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ---------- 通用 ----------
+   注：.gold / .gold-t / --brand* 是历史类名。
+   初版是金色主题，现已整体改为白绿主题，这些名字保留以免大范围改动模板字符串。
+   .gold  = 主按钮（绿）
+   .gold-t= 强调文字（绿）                                        */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:9px 14px;border-radius:10px;border:1px solid var(--line2);
+  background:linear-gradient(180deg,#ffffff,#eef5f1);
+  color:var(--txt);font-weight:600;font-size:13px;
+  transition:.15s transform,.15s filter,.15s border-color;
+  white-space:nowrap;
+}
+.btn:hover:not(:disabled){transform:translateY(-1px);border-color:var(--brand2);background:linear-gradient(180deg,#ffffff,#e4f3ec)}
+.btn:active:not(:disabled){transform:translateY(0) scale(.98)}
+.btn.gold{background:linear-gradient(180deg,#17b478,#0b7a51);border-color:#17b478;color:#ffffff}
+.btn.gold:hover:not(:disabled){filter:brightness(1.08)}
+.btn.green{background:linear-gradient(180deg,#17b478,#0b7a51);border-color:#34c98a;color:#ffffff}
+.btn.red{background:linear-gradient(180deg,#ef4444,#b91c1c);border-color:#ef4444;color:#ffffff}
+.btn.ghost{background:transparent;border-color:var(--line2);color:var(--dim)}
+.btn.ghost:hover:not(:disabled){color:var(--brand);background:rgba(18,160,110,.07)}
+.btn.sm{padding:6px 10px;font-size:12px;border-radius:8px}
+.btn.block{width:100%}
+.chip{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.3px;border:1px solid transparent}
+.muted{color:var(--dim)}
+.tiny{font-size:11px}
+.mono{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+.pos{color:var(--green)}.neg{color:var(--red)}
+.gold-t{color:var(--brand)}
+
+/* ---------- 布局 ---------- */
+#app{max-width:1500px;margin:0 auto;padding:10px 14px 40px}
+.topbar{
+  position:sticky;top:0;z-index:50;
+  display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;
+  padding:10px 16px;margin:0 -14px 14px;
+  background:rgba(255,255,255,.88);backdrop-filter:blur(14px);box-shadow:0 1px 0 rgba(16,60,42,.05),0 8px 20px -18px rgba(16,60,42,.30);
+  border-bottom:1px solid var(--line);
+}
+.brand{font-weight:900;letter-spacing:2px;font-size:16px;background:linear-gradient(90deg,#34c98a,#0a6b49);-webkit-background-clip:text;background-clip:text;color:transparent}
+.stat{display:flex;align-items:baseline;gap:6px;font-size:12px;color:var(--dim)}
+.stat b{font-size:15px;color:var(--txt);font-weight:800}
+.stat b.g{color:var(--brand)}
+.spacer{flex:1}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr) 300px;gap:14px;align-items:start}
+@media(max-width:1180px){.layout{grid-template-columns:230px minmax(0,1fr)}.col-right{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}}
+@media(max-width:820px){
+  .layout{grid-template-columns:1fr}
+  .col-left{order:3}.stage{order:1}.col-right{order:2;grid-template-columns:1fr}
+  #app{padding:8px 10px 40px}
+  .topbar{margin:0 -10px 10px;padding:8px 10px;gap:6px 12px}
+  .stat b{font-size:13px}.stat{font-size:11px}
+}
+.card{background:linear-gradient(180deg,#ffffff,#fafdfb);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px;box-shadow:0 1px 2px rgba(16,60,42,.04),0 8px 22px -16px rgba(16,60,42,.22)}
+.card.pad0{padding:0;overflow:hidden}
+.card-h{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:800;font-size:13px;letter-spacing:.6px;margin-bottom:12px;color:var(--brand)}
+.card.pad0 .card-h{padding:13px 14px 0;margin-bottom:10px}
+.hr{height:1px;background:var(--line);margin:12px -14px}
+
+/* ---------- 阶段条 ---------- */
+.steps{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px}
+.step{
+  flex:1;min-width:88px;padding:9px 8px;border-radius:11px;border:1px solid var(--line);
+  background:var(--card);text-align:center;font-size:12px;color:var(--dim);font-weight:700;transition:.2s
+}
+.step .si{display:block;font-size:15px;margin-bottom:2px}
+.step.on{border-color:var(--brand);background:linear-gradient(180deg,#ddf3e9,#eafaf2);color:var(--brand);box-shadow:0 0 0 1px rgba(14,138,95,.28),0 6px 18px -8px rgba(14,138,95,.45)}
+.step.done{color:#8fa79c;border-color:#e2ede7}
+.step.clickable{cursor:pointer}
+
+/* ---------- 货源/客户卡 ---------- */
+.deal{
+  border:1px solid var(--line);border-radius:13px;background:linear-gradient(180deg,#ffffff,#f6fbf8);
+  padding:13px;margin-bottom:11px;position:relative;overflow:hidden;
+  box-shadow:0 1px 2px rgba(16,60,42,.04),0 6px 16px -14px rgba(16,60,42,.20)
+}
+.deal::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--brand2);opacity:.75}
+.deal.fake::before{background:var(--red)}
+.deal.ok::before{background:var(--green)}
+.deal.dim{opacity:.45;filter:grayscale(.6)}
+.deal-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px}
+.deal-title{font-size:15px;font-weight:800;line-height:1.3}
+.deal-sub{font-size:11.5px;color:var(--dim);margin-top:2px}
+.price{font-size:17px;font-weight:900;color:var(--brand);white-space:nowrap}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.kv{display:flex;justify-content:space-between;gap:8px;font-size:12px;padding:3px 0;border-bottom:1px dashed rgba(18,38,30,.08)}
+.kv:last-child{border-bottom:none}
+.kv span:first-child{color:var(--dim)}
+.note{font-size:12px;color:var(--dim);background:rgba(18,140,95,.05);border-left:2px solid var(--line2);padding:7px 9px;border-radius:0 8px 8px 0;margin:8px 0}
+.note.warn{border-color:var(--red);color:#b91c1c;background:rgba(220,38,38,.07)}
+.note.good{border-color:var(--green);color:#0b7a4f;background:rgba(18,160,110,.08)}
+
+/* ---------- 员工 ---------- */
+.staff{display:flex;align-items:center;gap:9px;padding:9px;border-radius:11px;background:var(--card2);border:1px solid var(--line);margin-bottom:8px;transition:.15s border-color}
+.staff .av{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:16px;background:var(--card3);flex:0 0 auto}
+.staff .nm{font-weight:700;font-size:12.5px;line-height:1.2}
+.staff .rl{font-size:10.5px;color:var(--dim)}
+.bar{height:4px;background:#e6f0ea;border-radius:4px;overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--brand2),var(--brand));border-radius:4px}
+
+/* ---------- 库存 ---------- */
+.inv{display:flex;gap:9px;padding:8px;border-radius:10px;background:var(--card2);border:1px solid var(--line);margin-bottom:7px;align-items:center;transition:.15s border-color,background}
+.inv .ic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:15px;flex:0 0 auto;background:var(--card3)}
+.inv .nm{font-size:12px;font-weight:700;line-height:1.25}
+.inv .mt{font-size:10.5px;color:var(--dim)}
+
+/* ---------- 广告 ---------- */
+.adopt{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;
+  padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--card2);margin-bottom:8px;transition:.15s
+}
+.adopt:hover:not(:disabled){border-color:var(--brand2);transform:translateX(2px)}
+.adopt.on{border-color:var(--brand);background:linear-gradient(90deg,#ddf3e9,#f3faf6)}
+.adopt .t{font-weight:800;font-size:13.5px}
+.adopt .d{font-size:11px;color:var(--dim);margin-top:2px}
+
+/* ---------- 日志 ---------- */
+.logbox{max-height:230px;overflow-y:auto;font-size:12px;padding-right:4px}
+.logline{padding:5px 0;border-bottom:1px dashed rgba(18,38,30,.08);color:var(--dim);display:flex;gap:7px}
+.logline b{color:var(--txt);font-weight:600}
+.logline .d{color:var(--dim2);flex:0 0 auto;font-size:10.5px;padding-top:1px}
+
+/* ---------- 开花（浮动数字） ---------- */
+#float{position:fixed;inset:0;pointer-events:none;z-index:999}
+.float{position:absolute;font-weight:900;font-size:20px;animation:fl 1.5s ease-out forwards;text-shadow:0 1px 0 #fff,0 0 12px rgba(255,255,255,.95),0 3px 16px rgba(16,60,42,.22)}
+@keyframes fl{0%{opacity:0;transform:translateY(10px) scale(.8)}20%{opacity:1;transform:translateY(0) scale(1.1)}100%{opacity:0;transform:translateY(-70px) scale(1)}}
+
+/* ---------- 弹层 ---------- */
+.mask{position:fixed;inset:0;background:rgba(232,243,237,.80);backdrop-filter:blur(6px);z-index:200;display:grid;place-items:center;padding:18px;overflow-y:auto}
+.modal{background:linear-gradient(180deg,#ffffff,#f4faf7);border:1px solid var(--line2);border-radius:18px;padding:22px;max-width:560px;width:100%;box-shadow:0 24px 60px -20px rgba(12,60,42,.30),0 2px 8px rgba(12,60,42,.06);max-height:92vh;overflow-y:auto}
+.modal h2{margin:0 0 4px;font-size:21px;letter-spacing:2px;background:linear-gradient(90deg,#34c98a,#0a6b49);-webkit-background-clip:text;background-clip:text;color:transparent}
+.modal h3{font-size:14px;margin:18px 0 8px;color:var(--brand)}
+.modal p{margin:6px 0;color:var(--dim);font-size:13px}
+.modal ul{margin:6px 0;padding-left:18px;color:var(--dim);font-size:13px}
+.modal li{margin:3px 0}
+
+/* ---------- 开场 ---------- */
+.title-wrap{text-align:center;padding:6vh 0 0}
+.big-title{font-size:clamp(34px,8vw,62px);font-weight:900;letter-spacing:8px;background:linear-gradient(180deg,#3ad195,#0e8a5f 42%,#07563a);-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1.15;text-shadow:0 20px 60px rgba(14,138,95,.20)}
+.sub-title{color:var(--dim);letter-spacing:6px;font-size:13px;margin-top:10px}
+.brandmark{display:inline-block;padding:5px 16px;margin-bottom:16px;border:1px solid rgba(14,138,95,.32);border-radius:999px;
+  font-size:11.5px;letter-spacing:3px;color:var(--brand);background:rgba(14,138,95,.07);font-weight:700}
+.brandmark-foot{text-align:center;color:var(--dim2);font-size:11px;letter-spacing:3px;margin:34px 0 60px}
+.feat{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:26px 0}
+.feat div{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:14px 12px;text-align:left;box-shadow:0 1px 2px rgba(16,60,42,.04),0 8px 22px -16px rgba(16,60,42,.22)}
+.feat .fi{font-size:22px}
+.feat .ft{font-weight:800;font-size:13px;margin:7px 0 3px}
+.feat .fd{font-size:11.5px;color:var(--dim);line-height:1.5}
+
+.tag{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:6px;font-size:10.5px;font-weight:700;background:#eaf4ee;color:var(--dim);border:1px solid var(--line2)}
+.flex{display:flex;gap:8px;align-items:center}
+.between{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.empty{text-align:center;color:var(--dim2);padding:26px 10px;font-size:13px}
+.empty .e{font-size:30px;display:block;margin-bottom:8px;opacity:.5}
+</style>
+</head>
+<body>
+<div id="float"></div>
+<div id="app"></div>
+<script>
+/* =====================================================================
+   二奢模拟器
+   —— 二手奢侈品经营模拟
+   ===================================================================== */
+'use strict';
+
+/* ---------------- 基础工具 ---------------- */
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const rint=(a,b)=>Math.floor(rnd(a,b+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const chance=p=>Math.random()<p;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const money=n=>{const s=n<0?'-':'';const v=Math.abs(Math.round(n));return s+'¥'+v.toLocaleString('en-US');};
+const wshort=n=>{const v=Math.abs(n);const s=n<0?'-':'';if(v>=100000000)return s+(v/100000000).toFixed(2)+'亿';if(v>=10000)return s+(v/10000).toFixed(v>=1000000?0:1)+'万';return s+Math.round(v);};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function wpick(arr,wf){const ws=arr.map(wf);let t=0;for(const w of ws)t+=w;let r=Math.random()*t;for(let i=0;i<arr.length;i++){r-=ws[i];if(r<=0)return arr[i];}return arr[arr.length-1];}
+const $=id=>document.getElementById(id);
+
+/* ---------------- 静态数据 ---------------- */
+const CONDITIONS=[
+  {name:'全新未用',mul:1.10,w:6,ic:'✨'},
+  {name:'99新',   mul:1.00,w:18,ic:'💎'},
+  {name:'95新',   mul:0.92,w:30,ic:'🔹'},
+  {name:'9成新',  mul:0.82,w:26,ic:'🔸'},
+  {name:'8成新',  mul:0.70,w:14,ic:'🧩'},
+  {name:'7成新',  mul:0.55,w:6, ic:'🩹'}
+];
+
+const BRANDS=[
+ {name:'爱马仕',en:'Hermès',tier:5,weight:3,color:'#d97706',ic:'🧡',firm:1.06,sell:[1.00,1.35],models:[
+   ['Birkin 25',128000],['Kelly 28',118000],['Constance 19',82000],['Lindy 26',56000],['Picotin 18',25000],['Evelyne III',22000]]},
+ {name:'香奈儿',en:'Chanel',tier:5,weight:10,color:'#334155',ic:'🖤',firm:1.05,sell:[0.84,1.08],models:[
+   ['Classic Flap 中号',89000],['2.55 中号',84000],['CF 小号',78000],['19 Bag',64000],['Gabrielle',38000],['WOC 链条包',27000]]},
+ {name:'路易威登',en:'Louis Vuitton',tier:4,weight:20,color:'#92400e',ic:'🟤',firm:1.00,sell:[0.70,0.90],models:[
+   ['Neverfull MM',15500],['Speedy 20',14500],['Capucines BB',45000],['Pochette Métis',20500],['Alma BB',17500],['Dauphine 达芙妮',26000]]},
+ {name:'迪奥',en:'Dior',tier:4,weight:10,color:'#2563eb',ic:'🔵',firm:1.02,sell:[0.62,0.84],models:[
+   ['Lady Dior 中号',48000],['蒙田 30',34000],['Saddle 马鞍',32000],['Book Tote 中号',30000],['Caro',28000]]},
+ {name:'思琳',en:'Celine',tier:3,weight:8,color:'#78716c',ic:'⚪',firm:0.99,sell:[0.56,0.76],models:[
+   ['Classic Box',29000],['Triomphe 中号',27000],['Belt Bag 鲶鱼包',19000],['Luggage 笑脸包',16500]]},
+ {name:'罗意威',en:'Loewe',tier:3,weight:6,color:'#ca8a04',ic:'🟡',firm:0.98,sell:[0.54,0.73],models:[
+   ['Puzzle 中号',23000],['Hammock',21000],['Flamenco',20000],['Gate',19000]]},
+ {name:'圣罗兰',en:'Saint Laurent',tier:3,weight:8,color:'#e11d48',ic:'🌸',firm:0.97,sell:[0.50,0.70],models:[
+   ['Envelope 中号',21000],['Loulou 中号',20000],['Sac de Jour',24000],['Kate 链条包',16000]]},
+ {name:'古驰',en:'Gucci',tier:3,weight:10,color:'#16a34a',ic:'🟢',firm:0.98,sell:[0.48,0.68],models:[
+   ['Dionysus 酒神中号',23000],['GG Marmont 中号',19000],['Jackie 1961',21000],['Ophidia',14000]]},
+ {name:'普拉达',en:'Prada',tier:3,weight:7,color:'#7c3aed',ic:'🟣',firm:0.99,sell:[0.50,0.68],models:[
+   ['Galleria 中号',26000],['Re-Edition 2005',12000],['Cleo',19000],['尼龙双肩包',11000]]},
+ {name:'芬迪',en:'Fendi',tier:3,weight:6,color:'#b45309',ic:'🟠',firm:1.00,sell:[0.50,0.68],models:[
+   ['Baguette 法棍中号',28000],['Peekaboo 中号',42000],['Sunshine 托特',22000]]},
+ {name:'巴宝莉',en:'Burberry',tier:2,weight:5,color:'#92400e',ic:'🧥',firm:0.95,sell:[0.36,0.52],models:[
+   ['格纹托特包',13000],['TB 包',16000],['Lola',14000]]},
+ {name:'蔻驰',en:'Coach',tier:1,weight:7,color:'#64748b',ic:'👝',firm:0.92,sell:[0.26,0.42],models:[
+   ['Tabby 26',4500],['山茶花系列',3800],['Rogue',6800],['大号托特',3200]]}
+];
+const BMAP={};BRANDS.forEach(b=>BMAP[b.name]=b);
+
+const ROLES={
+  buyer:    {name:'回收师',ic:'🎒',desc:'带回货源 · 初判真伪 · 压价谈判'},
+  appraiser:{name:'鉴定师',ic:'🔍',desc:'专业鉴定 · 准确率随技能提升'},
+  care:     {name:'护理师',ic:'🧴',desc:'翻新护理 · 提升品相与售价'},
+  sales:    {name:'销售',  ic:'💼',desc:'接待客户 · 提升议价上限'}
+};
+const ROLE_ORDER=['buyer','appraiser','care','sales'];
+
+const NAMES=['王雪梅','李国栋','张雨欣','刘志强','陈美琳','杨浩然','赵子涵','周雅静','吴建国','徐子豪',
+'孙丽娜','马晓东','朱文博','胡佳怡','郭俊杰','何雨桐','高志远','林诗涵','罗嘉豪','梁晓雯',
+'宋佳明','唐雪柔','许文轩','邓凯文','冯思妤','曹伟明','彭佳琪','蒋子墨','韩雨薇','沈亦辰'];
+
+const SELLER_TYPES=[
+  {name:'着急出手',ic:'🏃',haggle:0.22,cut:-0.06,price:0.94,w:3,line:'家里急用钱，今天就要出手。'},
+  {name:'普通卖家',ic:'🙂',haggle:0.00,cut: 0.00,price:1.00,w:4,line:'闲置出掉，价格好商量。'},
+  {name:'精明商家',ic:'🧐',haggle:-0.25,cut:0.07,price:1.07,w:2,line:'同行收货，行情价我都清楚。'}
+];
+
+const CUSTOMER_TYPES=[
+  {name:'学生党',  ic:'🎓',bid:[0.68,0.90],w:()=>14+Math.max(0,20-S.rep*0.2),tier:1},
+  {name:'上班族',  ic:'👩‍💼',bid:[0.82,1.02],w:()=>22,tier:2},
+  {name:'中产太太',ic:'💃',bid:[0.90,1.10],w:()=>12+S.rep*0.22,tier:3},
+  {name:'企业家',  ic:'🕴️',bid:[0.98,1.18],w:()=>2+S.rep*0.16+S.fans/2600,tier:4},
+  {name:'收藏玩家',ic:'🧐',bid:[1.05,1.35],w:()=>1+S.rep*0.12+S.fans/3800,tier:5}
+];
+
+const EVENTS=[
+ {id:'viral',ic:'🚀',title:'抖音爆款视频',desc:'昨晚随手拍的一条开箱视频突然爆了，后台消息 99+！',fn:()=>{const f=rint(600,1800);S.fans+=f;S.rep=clamp(S.rep+2,0,100);return`粉丝 +${f}，声望 +2`;}},
+ {id:'hater',ic:'💢',title:'黑粉差评',desc:'一条"卖假货"的差评视频冲上同城榜，评论区沦陷。',fn:()=>{S.rep=clamp(S.rep-6,0,100);return'声望 -6';}},
+ {id:'referral',ic:'🤝',title:'老客户转介绍',desc:'上个月成交的老客户把你拉进了三个富婆群。',fn:()=>{S.bonusCustomer=2;return'今日到店客户 +2';}},
+ {id:'steal',ic:'🐍',title:'同行半路截胡',desc:'约好的卖家在来的路上被隔壁店加价抢走了货。',fn:()=>{S.bonusOffer=-1;return'今日货源 -1';}},
+ {id:'limit',ic:'📉',title:'平台限流',desc:'直播间被判定"营销过度"，流量池被限制。',fn:()=>{S.adPenalty=0.45;return'今日广告效果 -55%';}},
+ {id:'star',ic:'🌟',title:'明星同款爆火',desc:'某女星机场街拍上身，该品牌二手询价量暴涨。',fn:()=>{const b=pick(BRANDS.slice(0,8));S.hotBrand=b.name;return`${b.name} 今日售价 +22%`;}},
+ {id:'slow',ic:'🌧️',title:'市场淡季',desc:'连着下雨，商圈人流骤减，进店客人变少。',fn:()=>{S.bonusCustomer=-1;return'今日到店客户 -1';}},
+ {id:'fence',ic:'🚨',title:'可疑货源上门',desc:'一个操外地口音的男人拎着三个"全新爱马仕"找上门，价格低得离谱。',fn:()=>{S.fakeWave=true;return'今日货源高仿概率大增';}},
+ {id:'gift',ic:'🎁',title:'商场补贴',desc:'商场周年庆，给入驻商户发放了经营补贴。',fn:()=>{const m=rint(8000,22000);S.cash+=m;return`现金 +${money(m)}`;}},
+ {id:'poach',ic:'📤',title:'员工被挖角',desc:'隔壁新开的二奢店开出双倍工资挖人。',fn:()=>{const s=pick(S.staff);if(!s)return'店里没人，虚惊一场';s.skill=Math.max(1,s.skill-1);return`${s.name} 状态下滑，技能 -1`;}}
+];
+
+/* ---------------- 竞争对手 & 区域 ---------------- */
+const RIVAL_FIRMS=['聚奢汇','奢品云仓','名媛会','尚品阁','奢交所','品奢行','臻品汇','包包银行','潮奢工坊','二手奢仓'];
+const RIVAL_BOSSES=['马总','强哥','陈老板','刘总','华姐','老赵','孙总','周老板','徐姐','钱总'];
+
+/* 区域：打赢本区对手后，才能去这些地方开分店 */
+const REGIONS=[
+  {id:'local',name:'本区 · 老店',   ic:'🏠',tier:2,cost:0,       base:1.00,rival:null,                    desc:'你的起家之地'},
+  {id:'r1',   name:'大学城商圈',    ic:'🎓',tier:1,cost:400000,  base:0.90,rival:{name:'潮奢工坊',power:34},desc:'客单价低但人流极大，适合跑量'},
+  {id:'r2',   name:'城南万达商圈',  ic:'🏬',tier:2,cost:750000,  base:1.05,rival:{name:'城南奢品',power:52},desc:'成熟商圈，客源稳定，竞争激烈'},
+  {id:'r3',   name:'机场免税商圈',  ic:'✈️',tier:3,cost:1300000, base:1.20,rival:{name:'云顶奢汇',power:66},desc:'客流质量高，但租金贵得离谱'},
+  {id:'r4',   name:'CBD 核心区',    ic:'🏙️',tier:4,cost:2100000, base:1.35,rival:{name:'环球名品',power:80},desc:'白领精英聚集，客单价天花板'},
+  {id:'r5',   name:'富人区别墅群',  ic:'🏡',tier:5,cost:3200000, base:1.50,rival:{name:'臻藏会',  power:94},desc:'真正的顶级客户，只认行家'}
+];
+const RMAP={};REGIONS.forEach(r=>RMAP[r.id]=r);
+const regionOf=id=>RMAP[id]||REGIONS[0];
+/* REGIONS 是模块级常量，每局开始必须把区域对手实力复位，否则会串局 */
+function resetRegions(){
+  REGIONS.forEach(r=>{if(r.rival)r.rival.power=r.rival.p0!==undefined?r.rival.p0:r.rival.power;});
+}
+REGIONS.forEach(r=>{if(r.rival)r.rival.p0=r.rival.power;});
+
+/* 每日可执行一次的竞争动作 */
+const COMPETE_ACTIONS=[
+  {id:'pr',   name:'舆论攻势', ic:'📢',cost:20000,desc:'投一波同城内容，涨声望、压他的口碑'},
+  {id:'poach',name:'高薪挖角', ic:'💰',cost:60000,desc:'挖走他一个骨干，他的人手直接塌一块'},
+  {id:'war',  name:'价格战',   ic:'🔥',cost:0,    desc:'今日售价 -15%，但市占率猛涨'},
+  {id:'deal', name:'商务合作', ic:'🤝',cost:40000,desc:'谈停战 3 天，他不再截胡和分流你的客人'}
+];
+
+/* ---------------- 游戏状态 ---------------- */
+let S=null;
+
+function mkStaff(role,skill){
+  const used=S.staff.map(s=>s.name);
+  const pool=NAMES.filter(n=>!used.includes(n));
+  return {uid:S.uid++,role,name:pool.length?pick(pool):pick(NAMES),skill:clamp(skill,1,10)};
+}
+const salaryOf=s=>Math.round((150+s.skill*110)/10)*10;
+const trainCost=s=>4000*s.skill;
+const hireCost=15000;
+const staffOf=role=>S.staff.filter(s=>s.role===role);
+const bestSkill=role=>staffOf(role).reduce((m,s)=>Math.max(m,s.skill),0);
+/* 门店接待能力：销售人数决定每天最多能成交多少客户 */
+const salesCapacity=()=>3+staffOf('sales').length*2;
+
+function newGame(){
+  resetRegions();   // 区域对手复位，避免上一局的战果串到这局
+  S={
+    uid:1,day:1,maxDay:30,cash:500000,rep:50,fans:0,
+    staff:[],inventory:[],log:[],phase:'collect',
+    offers:[],customers:[],adBudget:0,adResult:null,
+    bonusCustomer:0,bonusOffer:0,adPenalty:1,hotBrand:null,fakeWave:false,lostCustomers:0,
+    /* 直播带货 */
+    lastLiveDay:-99,liveOpen:false,liveTier:null,livePicks:[],liveResult:null,pendingReturns:[],
+    /* 同行包展 */
+    fairOpen:false,fairLots:[],fairBoothPaid:false,fairDumped:0,fairBought:0,fairIn:0,
+    /* 竞争对手 */
+    rival:{name:pick(RIVAL_FIRMS),boss:pick(RIVAL_BOSSES),power:42,anger:50,history:[]},
+    share:38,act:1,truce:0,competeUsed:null,priceWar:false,rivalStole:0,rivalDiverted:0,
+    /* 分店 */
+    branches:[],branchMode:'map',
+    event:null,daily:null,
+    total:{rev:0,cost:0,deals:0,fakeCaught:0,fakeSold:0,fakeTorched:0,viral:0,ads:0,
+           liveRev:0,liveFee:0,liveSold:0,liveReturned:0,fairBuy:0,fairDump:0,dumpRev:0,refund:0,
+           branchRev:0,branchCost:0,warSpend:0,regionWins:0},
+    over:false,tab:'inv',started:true
+  };
+  S.staff.push(mkStaff('buyer',3));
+  S.staff.push(mkStaff('appraiser',2));
+  S.staff.push(mkStaff('care',2));
+  S.staff.push(mkStaff('sales',3));
+  log('🏪 门店开业！启动资金 '+money(S.cash),'gold');
+  log(`⚔️ 本区盘踞着老对手「${S.rival.name}」（${S.rival.boss}），眼下他占了上风。`,'warn');
+  startDay();
+}
+
+function log(text,type){
+  S.log.unshift({d:S?S.day:1,t:text,type:type||''});
+  if(S.log.length>60)S.log.length=60;
+}
+
+/* ---------------- 价值计算 ---------------- */
+const condOf=it=>CONDITIONS[it.cond];
+const marketOf=it=>Math.round(it.sellBase*condOf(it).mul*(S.hotBrand===it.brand?1.22:1));
+const trueLabel=it=>it.fake==='genuine'?'真品':(it.fake==='superfake'?'高仿':'假货');
+
+/* ---------------- 货源生成 ---------------- */
+function mkOffer(){
+  const bs=bestSkill('buyer');
+  // 回收师技能越高，越能接触到高档次品牌与好品相
+  const brand=wpick(BRANDS,b=>Math.max(0.35,b.weight*(1+(b.tier-3)*(bs-1)*0.055)));
+  const model=pick(brand.models);
+  const retail=model[1];
+  const cond=wpick(CONDITIONS.map((_,i)=>i),i=>Math.max(0.35,CONDITIONS[i].w*(1+(2.5-i)*(bs-1)*0.06)));
+  const condMul=CONDITIONS[cond].mul;
+  const seller=wpick(SELLER_TYPES,s=>s.w);
+
+  let fake='genuine';
+  const roll=Math.random();
+  const fakeRate=S.fakeWave?0.55:0.16;
+  if(roll<fakeRate*0.32)fake='fake';
+  else if(roll<fakeRate)fake='superfake';
+
+  const sellBase=retail*rnd(brand.sell[0],brand.sell[1]);
+  const market=sellBase*condMul;                 // 这件包的市场公允售价
+
+  /* 卖家要价 = 市场价 × (1.00~1.16) × 性格 × 品牌硬度
+     ——也就是"比卖价略高或持平"。不砍价直接收基本必亏，利润只能从压价里来。 */
+  let askFactor=rnd(1.00,1.16)*seller.price*brand.firm;
+  if(fake!=='genuine')askFactor*=rnd(0.92,1.00);  // 假货卖家略微心虚，但不改大局
+  askFactor=clamp(askFactor,0.96,1.42);
+  let ask=Math.max(300,Math.round(market*askFactor/100)*100);
+
+  // 回收师初判
+  const acc=clamp(0.50+bestSkill('buyer')*0.035,0.5,0.86);
+  let hint;
+  const right=chance(acc);
+  if(right){hint=fake==='genuine'?'real':'fake';}
+  else{hint=fake==='genuine'?(chance(0.45)?'fake':'unsure'):(chance(0.5)?'real':'unsure');}
+
+  return {
+    oid:S.uid++,brand:brand.name,model:model[0],retail,cond,fake,seller,hint,
+    ask,ask0:ask,market,sellBase,status:'pending',haggleUsed:false,appraised:false,
+    appraiseResult:null,msg:null
+  };
+}
+
+function genOffers(){
+  const nb=staffOf('buyer').length;
+  const total=clamp(nb+2+rint(0,1)+S.bonusOffer,0,7);
+  S.offers=[];
+  for(let i=0;i<total;i++)S.offers.push(mkOffer());
+  if(total===0)log('今天没人上门送货，货源断档。','warn');
+}
+
+/* ---------------- 同行包展 ---------------- */
+const FAIR_BUY_MUL=0.72;   // 展会批发价 ≈ 市价的 7.2 折（比砍价后的上门收货还便宜）
+const FAIR_DUMP_MUL=0.58;  // 甩货价 = 市价的 58%（比门店零售低得多，换的是"即时 + 不限量"）
+const FAIR_BOOTH_FEE=3000; // 摆摊甩货的展位费
+const fairCap=()=>3+staffOf('buyer').length;  // 一天最多扫几件
+
+function mkFairLot(){
+  const bs=bestSkill('buyer');
+  const brand=wpick(BRANDS,b=>Math.max(0.35,b.weight*(1+(b.tier-3)*(bs-1)*0.05)));
+  const model=pick(brand.models);
+  const retail=model[1];
+  const cond=wpick(CONDITIONS.map((_,i)=>i),i=>Math.max(0.35,CONDITIONS[i].w*(1+(2.5-i)*(bs-1)*0.05)));
+  const condMul=CONDITIONS[cond].mul;
+  let fake='genuine';
+  const roll=Math.random();
+  if(roll<0.10)fake='fake'; else if(roll<0.28)fake='superfake';
+  // 展会现场不给验货、也不能砍价 —— 便宜就是唯一的理由
+  const sellBase=retail*rnd(brand.sell[0],brand.sell[1]);
+  const market=sellBase*condMul;
+  let ask=Math.max(200,Math.round(market*FAIR_BUY_MUL*rnd(0.94,1.08)/100)*100);
+  // 展会现场不给验货，只能听同行一句口碑 —— 极不准
+  const acc=clamp(0.42+bs*0.022,0.42,0.64);
+  let hint;
+  if(chance(acc))hint=fake==='genuine'?'real':'fake';
+  else hint=fake==='genuine'?(chance(0.5)?'fake':'unsure'):(chance(0.55)?'real':'unsure');
+  return {lid:S.uid++,brand:brand.name,model:model[0],retail,cond,fake,hint,ask,ask0:ask,
+          sellBase,status:'pending',msg:null};
+}
+function genFairLots(){
+  const n=rint(5,7);
+  S.fairLots=[];
+  for(let i=0;i<n;i++)S.fairLots.push(mkFairLot());
+}
+function fairBoughtCount(){return S.fairLots.filter(l=>l.status==='bought').length;}
+
+function actFairBuy(lid){
+  const l=S.fairLots.find(x=>x.lid===lid);
+  if(!l||l.status!=='pending')return;
+  if(fairBoughtCount()>=fairCap()){toast('今天拿不动更多了，回收师人手不够','#dc2626');return;}
+  if(S.cash<l.ask){toast('现金不足','#dc2626');return;}
+  S.cash-=l.ask;S.daily.cost+=l.ask;S.daily.buy+=l.ask;S.daily.fairBuy+=l.ask;
+  S.total.cost+=l.ask;S.total.fairBuy+=l.ask;S.fairBought++;
+  S.inventory.push({
+    id:S.uid++,brand:l.brand,model:l.model,retail:l.retail,cond:l.cond,
+    fake:l.fake,belief:null,verified:false,verifyCount:0,
+    sellBase:l.sellBase,cost:l.ask,careUsed:0,fromFair:true
+  });
+  l.status='bought';
+  log(`🏷️ 展会扫货 ${l.brand} ${l.model}（${CONDITIONS[l.cond].name}）${money(l.ask)}`,'');
+  floatText('-'+money(l.ask),'#dc2626');
+  render();
+}
+
+function payBooth(){
+  if(S.fairBoothPaid)return;
+  if(S.cash<FAIR_BOOTH_FEE){toast('现金不足支付展位费','#dc2626');return;}
+  S.cash-=FAIR_BOOTH_FEE;S.daily.cost+=FAIR_BOOTH_FEE;S.daily.dumpFee+=FAIR_BOOTH_FEE;
+  S.total.cost+=FAIR_BOOTH_FEE;
+  S.fairBoothPaid=true;
+  log(`🏷️ 支付包展展位费 ${money(FAIR_BOOTH_FEE)}，可以摆摊甩货了`,'gold');
+  render();
+}
+
+/* 甩货：即时到账、不限量，但价格只有市价 58%；同行会验货，假货藏不住 */
+function dumpCaughtProb(it){
+  if(it.fake==='genuine')return 0;
+  return (it.verified&&it.belief!=='genuine')?0.45:0.28;
+}
+function actFairDump(id){
+  if(!S.fairBoothPaid){toast('先租个展位才能甩货','#dc2626');return;}
+  const it=S.inventory.find(x=>x.id===id);
+  if(!it)return;
+  if(chance(dumpCaughtProb(it))){
+    // 同行当场验出假货
+    S.inventory=S.inventory.filter(x=>x.id!==it.id);
+    S.rep=clamp(S.rep-12,0,100);
+    log(`🚨 甩货的 ${it.brand} ${it.model} 被同行当场验出是假货！货被扣下，声望 -12`,'warn');
+    toast('被同行验出假货了！','#dc2626');
+    render();return;
+  }
+  const knowsFake=it.verified&&it.belief!=='genuine';
+  const price=Math.round(marketOf(it)*FAIR_DUMP_MUL/100)*100;
+  S.cash+=price;S.daily.rev+=price;S.daily.dumpRev+=price;
+  S.total.rev+=price;S.total.dumpRev+=price;S.fairDumped++;
+  S.inventory=S.inventory.filter(x=>x.id!==it.id);
+  S.rep=clamp(S.rep+(knowsFake?-0.5:0.3),0,100);
+  log(`🏷️ 展会甩货 ${it.brand} ${it.model} → ${money(price)}（成本 ${money(it.cost)}）`,price>=it.cost?'good':'warn');
+  floatText('+'+money(price),'#12a06e');
+  render();
+}
+function actFairDumpAll(){
+  if(!S.fairBoothPaid){toast('先租个展位才能甩货','#dc2626');return;}
+  const list=S.inventory.slice();
+  if(list.length===0){toast('库存是空的','#dc2626');return;}
+  if(!confirm(`确定把 ${list.length} 件库存全部按市价 ${Math.round(FAIR_DUMP_MUL*100)}% 甩掉？`))return;
+  let total=0,n=0;
+  for(const it of list){
+    const knowsFake=it.verified&&it.belief!=='genuine';
+    if(chance(dumpCaughtProb(it))){
+      S.inventory=S.inventory.filter(x=>x.id!==it.id);
+      S.rep=clamp(S.rep-12,0,100);
+      log(`🚨 甩货时 ${it.brand} ${it.model} 被同行验出是假货，货被扣下，声望 -12`,'warn');
+      continue;
+    }
+    const price=Math.round(marketOf(it)*FAIR_DUMP_MUL/100)*100;
+    S.cash+=price;S.daily.rev+=price;S.daily.dumpRev+=price;
+    S.total.rev+=price;S.total.dumpRev+=price;
+    S.fairDumped++;total+=price;n++;
+    S.inventory=S.inventory.filter(x=>x.id!==it.id);
+    S.rep=clamp(S.rep+(knowsFake?-0.5:0.3),0,100);
+  }
+  log(`🏷️ 包展一次性甩货 ${n} 件，回款 ${money(total)}`,'gold');
+  floatText('+'+money(total),'#12a06e');
+  render();
+}
+
+/* ---------------- 直播带货专场 ---------------- */
+const LIVE_TIERS=[
+  {id:0,name:'小专场',ic:'🎙️',fee:5000,premium:0.14,retMul:1.00,capBonus:0,fans:[800,2000],rep:1,
+   desc:'5,000 元 · 试水一场，退货压力最小'},
+  {id:1,name:'标准专场',ic:'📺',fee:15000,premium:0.32,retMul:1.12,capBonus:2,fans:[3000,6000],rep:2.5,
+   desc:'15,000 元 · 溢价明显，退货率上升，涨粉可观'},
+  {id:2,name:'大场冲榜',ic:'🔥',fee:30000,premium:0.52,retMul:1.28,capBonus:5,fans:[9000,18000],rep:5,
+   desc:'30,000 元 · 价格最狠、涨粉最多，退货也最狠'}
+];
+const liveTier=()=>LIVE_TIERS.find(t=>t.id===S.liveTier)||null;
+const liveCap=()=>{
+  const t=liveTier();
+  return clamp(2+staffOf('sales').length*2+(t?t.capBonus:0),1,12);
+};
+/* 直播退货率：声望越高越可信，假货必被送检 */
+function liveReturnRate(it){
+  const t=liveTier();
+  let p=clamp(0.46-S.rep*0.0018,0.22,0.48);
+  if(t)p*=t.retMul;
+  if(it&&it.fake!=='genuine')p=Math.max(p,0.62);
+  return clamp(p,0.10,0.85);
+}
+function setLiveTier(id){S.liveTier=id;render();}
+function toggleLivePick(id){
+  const i=S.livePicks.indexOf(id);
+  if(i>=0){S.livePicks.splice(i,1);}
+  else{
+    if(S.livePicks.length>=liveCap()){toast(`本场上架上限 ${liveCap()} 件`,'#dc2626');return;}
+    S.livePicks.push(id);
+  }
+  render();
+}
+
+function startLive(){
+  const t=liveTier();
+  if(!t){toast('先选一个直播档位','#dc2626');return;}
+  if(S.livePicks.length===0){toast('至少上架一件货','#dc2626');return;}
+  if(S.cash<t.fee){toast('现金不足支付坑位费','#dc2626');return;}
+  S.cash-=t.fee;S.daily.cost+=t.fee;S.daily.liveFee+=t.fee;S.total.cost+=t.fee;S.total.liveFee+=t.fee;
+  S.lastLiveDay=S.day;
+
+  const rows=[];
+  let rev=0,sold=0,ret=0;
+  for(const id of S.livePicks.slice()){
+    const it=S.inventory.find(x=>x.id===id);
+    if(!it)continue;
+    const hitP=clamp(0.82+bestSkill('sales')*0.012,0.82,0.94);
+    if(!chance(hitP)){rows.push({it,status:'unsold'});continue;}
+    const price=Math.round(marketOf(it)*(1.12+t.premium+bestSkill('sales')*0.015+rnd(0,0.10))/100)*100;
+    S.cash+=price;S.daily.rev+=price;S.daily.liveRev+=price;
+    S.total.rev+=price;S.total.liveRev+=price;S.total.liveSold++;
+    rev+=price;sold++;
+    S.inventory=S.inventory.filter(x=>x.id!==it.id);
+    const rp=liveReturnRate(it);
+    if(chance(rp)){
+      ret++;
+      S.pendingReturns.push({
+        brand:it.brand,model:it.model,retail:it.retail,cond:it.cond,sellBase:it.sellBase,cost:it.cost,
+        amount:price,fake:it.fake,dueDay:S.day+rint(1,3)
+      });
+      rows.push({it,status:'sold',price,willReturn:true});
+    }else{
+      rows.push({it,status:'sold',price,willReturn:false});
+    }
+    S.rep=clamp(S.rep+0.4,0,100);
+  }
+  S.liveResult={rows,rev,sold,ret,fee:t.fee,tier:t};
+  // 大场直播真正的价值：涨粉 + 涨声望
+  const gained=rint(t.fans[0],t.fans[1]);
+  S.fans+=gained;
+  S.rep=clamp(S.rep+t.rep,0,100);
+  S.liveResult.fans=gained;
+  log(`📹 直播专场（${t.name}）：上架 ${S.livePicks.length} 件，成交 ${sold} 件，回款 ${money(rev)}，涨粉 ${gained}，预计 ${ret} 件会退货`,'gold');
+  floatText('+'+money(rev),'#12a06e');
+  render();
+}
+
+/* 退货到账：退回货款 + 处理费，货品相降一档退回仓库 */
+function processReturns(){
+  const due=S.pendingReturns.filter(r=>r.dueDay<=S.day);
+  if(due.length===0)return;
+  S.pendingReturns=S.pendingReturns.filter(r=>r.dueDay>S.day);
+  let refunded=0;
+  for(const r of due){
+    const fee=Math.round(r.amount*0.02);
+    S.cash-=r.amount+fee;
+    S.daily.cost+=r.amount+fee;S.daily.refund+=r.amount+fee;S.total.cost+=r.amount+fee;
+    S.total.refund+=r.amount+fee;S.total.liveReturned++;
+    refunded+=r.amount+fee;
+    if(r.fake!=='genuine'){
+      // 直播卖假货被送检，退款 + 索赔，货也拿不回来
+      S.rep=clamp(S.rep-12,0,100);
+      log(`🚨 直播卖出的 ${r.brand} ${r.model} 被买家送检，确认是假的！退款 ${money(r.amount)} + 处理费，货也没了，声望 -12`,'warn');
+    }else{
+      S.rep=clamp(S.rep-0.5,0,100);
+      S.inventory.push({
+        id:S.uid++,brand:r.brand,model:r.model,retail:r.retail,
+        cond:clamp(r.cond+1,0,5),          // 被戴过一圈，品相降一档
+        fake:r.fake,belief:null,verified:false,verifyCount:0,
+        sellBase:r.sellBase,cost:r.cost,careUsed:0,ret:true
+      });
+      log(`↩️ 直播退货：${r.brand} ${r.model} 退回，退款 ${money(r.amount)}（处理费 ${money(fee)}），品相降一档`,'warn');
+    }
+  }
+  floatText('-'+money(refunded),'#dc2626');
+}
+
+
+/* ---------------- 竞争对手：实力、市占率、每日干扰 ---------------- */
+/* 你的综合竞争力（0~120），和他的 power 是同一把尺子 */
+function myPower(){
+  const invVal=S.inventory.reduce((a,it)=>a+itemValue(it),0);
+  // 已开门店带来的江湖地位：垄断的区域加成更多
+  const branchBoost=S.branches.reduce((a,b)=>{
+    const r=regionOf(b.regionId);
+    return a+(r.rival.power<=0? r.tier*3.2 : r.tier*1.1);
+  },0);
+  return clamp(
+      S.rep*0.45
+    + Math.min(20, S.cash/40000)
+    + Math.min(18, S.fans/5000)
+    + Math.min(12, invVal/25000)
+    + Math.min(8,  (S.daily?S.daily.ad:0)/4000)
+    + Math.min(8,  (S.daily?S.daily.deals:0)*1.5)
+    + Math.min(24, branchBoost)
+  ,0,120);
+}
+const rivalActive=()=>S.truce<=0;
+/* 对手抢货源：返回今天被他截走的条数 */
+function rivalStealOffers(){
+  if(!rivalActive()||S.act>=2)return 0;
+  const pressure=(100-S.share)/100;
+  const p=clamp(0.12+pressure*0.45*S.rival.anger/50,0.05,0.7);
+  let n=0;
+  if(chance(p))n++;
+  if(chance(p*0.45))n++;
+  return n;
+}
+function rivalDivertCustomers(){
+  if(!rivalActive()||S.act>=2)return 0;
+  const pressure=(100-S.share)/100;
+  return Math.round(clamp(pressure*3.2*S.rival.anger/50,0,5));
+}
+function rivalAdFactor(){
+  if(!rivalActive()||S.act>=2)return 1;
+  return clamp(1.02-(100-S.share)/130,0.55,1.0);
+}
+/* 每日竞争结算 */
+function updateRival(){
+  S.competeUsed=null;
+  S.priceWar=false;
+  if(S.act>=2){S.rival.power=clamp(S.rival.power+rnd(-0.4,0.4),0,100);return;}
+  if(S.truce>0)S.truce--;
+  // 对手会照着你的实力补课 —— 想甩开他只能靠主动出手
+  const target=clamp(myPower()*0.92+3,25,105);
+  S.rival.power=clamp(S.rival.power+(target-S.rival.power)*0.09+rnd(-0.25,0.55),0,100);
+  // 市占率随实力差消长
+  const diff=myPower()-S.rival.power;
+  S.share=clamp(S.share+clamp(diff*0.10,-2.5,2.5),3,97);
+  S.rival.history.push(Math.round(S.share));
+  if(S.rival.history.length>40)S.rival.history.shift();
+}
+
+/* 玩家反击：每天一次 */
+function doCompete(id){
+  if(S.competeUsed){toast('今天已经出手过一次了','#dc2626');return;}
+  const a=COMPETE_ACTIONS.find(x=>x.id===id);
+  if(!a)return;
+  if(S.cash<a.cost){toast('现金不足','#dc2626');return;}
+  S.competeUsed=id;
+  S.cash-=a.cost;
+  S.total.cost+=a.cost;S.total.warSpend+=a.cost;S.daily.cost+=a.cost;
+  if(id==='pr'){
+    S.rep=clamp(S.rep+2.5,0,100);
+    S.rival.power=clamp(S.rival.power-6,0,100);
+    S.share=clamp(S.share+2,3,97);
+    log('📢 舆论攻势：声望 +2.5，「'+S.rival.name+'」实力 -6，市占率 +2','gold');
+    toast('舆论战得手','#12a06e');
+  }else if(id==='poach'){
+    S.rival.power=clamp(S.rival.power-14,0,100);
+    S.share=clamp(S.share+2.5,3,97);
+    const s=mkStaff(pick(['sales','buyer','appraiser','care']),rint(4,7));
+    S.staff.push(s);
+    log(`💰 挖角成功！「${S.rival.name}」实力 -14，${s.name}（${ROLES[s.role].name} Lv.${s.skill}）跳槽过来`,'gold');
+    toast('挖来了 '+s.name,'#12a06e');
+  }else if(id==='war'){
+    S.priceWar=true;
+    S.share=clamp(S.share+4.5,3,97);
+    S.rival.power=clamp(S.rival.power-3,0,100);
+    S.rival.anger=clamp(S.rival.anger+12,0,100);
+    log('🔥 价格战开打！今日售价 -15%，市占率 +4.5（对手记恨上你了）','warn');
+    toast('价格战开打！','#0e8a5f');
+  }else if(id==='deal'){
+    S.truce=3;
+    S.rival.anger=clamp(S.rival.anger-15,0,100);
+    log(`🤝 商务合作达成：「${S.rival.name}」3 天内不再截胡你的货源和客人`,'good');
+    toast('停战 3 天','#12a06e');
+  }
+  render();
+}
+
+/* ---------------- 分店 ---------------- */
+const regionWarCost=id=>Math.round(regionOf(id).rival.power*6000*spanCostMul()/1000)*1000;
+
+function launchRegionWar(regionId){
+  const b=S.branches.find(x=>x.regionId===regionId);
+  if(!b)return;
+  const r=regionOf(regionId);
+  if(r.rival.power<=0){toast('这个区域已经被你垄断了','#dc2626');return;}
+  const cost=regionWarCost(regionId);
+  if(S.cash<cost){toast('现金不足','#dc2626');return;}
+  S.cash-=cost;S.daily.cost+=cost;S.total.cost+=cost;S.total.warSpend+=cost;
+  const myP=(myPower()+S.rep*0.3)*spanWarMul();
+  const foeP=r.rival.power*rnd(0.88,1.25);
+  if(myP>=foeP){
+    const cut=Math.round(rnd(18,32));
+    r.rival.power=Math.max(0,r.rival.power-cut);
+    if(r.rival.power<=0){
+      S.total.regionWins++;
+      log(`🏆 你彻底打垮了「${r.rival.name}」，垄断${r.name}！该店利润翻倍。`,'gold');
+      toast('垄断 '+r.name+'！','#0e8a5f');
+    }else{
+      log(`⚔️ ${r.name}营销战取胜：「${r.rival.name}」实力降到 ${r.rival.power}`,'good');
+      toast('营销战取胜','#12a06e');
+    }
+    S.rep=clamp(S.rep+1.5,0,100);
+  }else{
+    r.rival.power=Math.min(100,r.rival.power+4);
+    log(`⚔️ ${r.name}营销战失利，「${r.rival.name}」反手加码，实力涨到 ${r.rival.power}`,'warn');
+    toast('营销战失利……','#dc2626');
+  }
+  render();
+}
+
+function openBranch(regionId){
+  const r=regionOf(regionId);
+  if(!r.rival)return;
+  if(S.branches.some(b=>b.regionId===regionId)){toast('这个区域已经有店了','#dc2626');return;}
+  if(S.act<2){toast('先打败本区对手，才能出去开店','#dc2626');return;}
+  if(S.cash<r.cost){toast('现金不足支付开店成本','#dc2626');return;}
+  const spare=S.staff.filter(s=>!s.branchId);
+  const pickMgr=spare.length?spare.sort((a,b)=>b.skill-a.skill)[0]:null;
+  S.cash-=r.cost;S.daily.cost+=r.cost;S.total.cost+=r.cost;
+  const b={regionId,managerId:pickMgr?pickMgr.uid:null,openedDay:S.day,lifetime:0,days:0,lastProfit:0};
+  if(pickMgr)pickMgr.branchId=regionId;
+  S.branches.push(b);
+  log(`🏬 在${r.name}开出分店！投入 ${money(r.cost)}${pickMgr?'，店长：'+pickMgr.name:'，⚠️ 还没派店长，先去派人'}`,'gold');
+  toast('分店开业：'+r.name,'#12a06e');
+  render();
+}
+function assignManager(regionId,uid){
+  const b=S.branches.find(x=>x.regionId===regionId);
+  if(!b)return;
+  S.staff.forEach(s=>{if(s.branchId===regionId)s.branchId=null;});
+  b.managerId=uid?Number(uid):null;
+  if(b.managerId){const m=S.staff.find(s=>s.uid===b.managerId);if(m)m.branchId=regionId;}
+  render();
+}
+function closeBranch(regionId){
+  const b=S.branches.find(x=>x.regionId===regionId);
+  if(!b)return;
+  const r=regionOf(regionId);
+  if(!confirm(`确定关掉${r.name}的分店？装修和押金收不回来，只能收回 ${money(Math.round(r.cost*0.18))}。`))return;
+  const back=Math.round(r.cost*0.18);
+  S.cash+=back;
+  S.staff.forEach(s=>{if(s.branchId===regionId)s.branchId=null;});
+  S.branches=S.branches.filter(x=>x.regionId!==regionId);
+  log(`🚪 关闭了${r.name}的分店，回收 ${money(back)}`,'warn');
+  render();
+}
+/* 管理跨度：店开得越多，总部精力越分散，单店效率越低、打仗越贵。
+   但营销战拼的是钱，管理跨度只轻微削弱战力。 */
+const spanMul=()=>1/(1+0.12*Math.max(0,S.branches.length-1));
+const spanWarMul=()=>1-0.035*Math.max(0,S.branches.length-1);
+const spanCostMul=()=>1+0.10*Math.max(0,S.branches.length-1);
+
+function branchDaily(b){
+  const r=regionOf(b.regionId);
+  const mgr=S.staff.find(s=>s.uid===b.managerId&&s.branchId===b.regionId);
+  const mgrSkill=mgr?mgr.skill:0;
+  const monopoly=r.rival.power<=0;
+  const comp=clamp(1-r.rival.power/140,0.35,1);      // 地头蛇越强，你越卖不动
+  const rev=Math.round(r.base*54000*(0.45+mgrSkill*0.075)*(1+S.rep/170)*comp*(monopoly?2.2:1)*spanMul());
+  const goods=Math.round(rev*0.50);
+  const rent=Math.round(r.tier*900);
+  const salary=mgr?(salaryOf(mgr)+600):0;
+  const ad=Math.round(r.tier*600);
+  const cost=goods+rent+salary+ad;
+  return {rev,goods,rent,salary,ad,cost,profit:rev-cost,mgr,monopoly,comp};
+}
+const branchValue=b=>{
+  const r=regionOf(b.regionId);
+  return Math.round(r.cost*0.55+(r.rival.power<=0?r.cost*0.5:0));
+};
+function branchSettle(){
+  for(const b of S.branches){
+    const d=branchDaily(b);
+    S.cash+=d.profit;
+    S.daily.branchRev+=d.rev;S.daily.branchCost+=d.cost;
+    S.total.branchRev+=d.rev;S.total.branchCost+=d.cost;
+    S.total.rev+=d.rev;S.total.cost+=d.cost;
+    b.lifetime+=d.profit;b.days++;b.lastProfit=d.profit;
+  }
+}
+
+/* 区域地头蛇每天也在恢复元气 —— 想垄断就得趁热打铁，慢慢磨是磨不死的 */
+function regionRivalsTick(){
+  if(S.act<2)return;
+  for(const b of S.branches){
+    const r=regionOf(b.regionId);
+    if(r.rival.power<=0)continue;
+    const target=clamp(myPower()*0.55+r.tier*4,10,100);
+    r.rival.power=clamp(r.rival.power+(target-r.rival.power)*0.03+rnd(0.15,0.75),0,100);
+  }
+}
+
+function startDay(){
+  S.daily={rev:0,wage:0,rent:0,ad:0,cost:0,buy:0,fee:0,penalty:0,deals:0,fake:0,care:0,
+           liveRev:0,liveFee:0,dumpRev:0,dumpFee:0,fairBuy:0,refund:0,branchRev:0,branchCost:0};
+  S.bonusCustomer=0;S.bonusOffer=0;S.adPenalty=1;S.hotBrand=null;S.fakeWave=false;
+  S.adBudget=0;S.adResult=null;S.customers=[];S.event=null;
+  S.liveTier=null;S.livePicks=[];S.liveResult=null;
+  S.fairLots=[];S.fairBoothPaid=false;S.fairDumped=0;S.fairBought=0;S.fairIn=0;
+  processReturns();   // 先处理到期退货：可能当场击穿现金流，今天你得想办法补上
+  updateRival();      // 竞争结算：刷新今日出手次数、市占率消长
+  regionRivalsTick(); // 各区域地头蛇恢复元气
+  // 直播机会：日常随机 + 6 天保底
+  S.liveOpen=S.day>=3&&(chance(0.45)||(S.day-S.lastLiveDay)>=6);
+  // 同行包展：每 5 天一场
+  S.fairOpen=S.day%5===0;
+
+  if(chance(0.42)&&S.day>1){
+    const ev=pick(EVENTS);
+    const eff=ev.fn();
+    S.event={...ev,eff};
+    log(ev.ic+' 【'+ev.title+'】'+eff,ev.id==='viral'||ev.id==='gift'?'gold':'warn');
+  }
+  if(S.fairOpen){genFairLots();log('🏷️ 今天是同行包展日，全国同行都在这儿走货。','gold');}
+  if(S.liveOpen)log('📹 今天可以开直播专场（溢价高，但退货率也高）。','gold');
+  // 对手截胡货源
+  S.rivalStole=0;
+  if(S.act<2&&S.truce<=0){
+    const stolen=rivalStealOffers();
+    if(stolen>0){
+      S.bonusOffer-=stolen;S.rivalStole=stolen;
+      log(`🐍 「${S.rival.name}」半路截走了你今天 ${stolen} 条货源`,'warn');
+    }
+  }
+  genOffers();
+  S.phase='collect';
+  render();
+}
+
+/* ---------------- 阶段顺序（展会/直播按日出现） ---------------- */
+function phaseOrder(){
+  const a=[['collect','收货','🎒']];
+  if(S.fairOpen)a.push(['fair','包展','🏷️']);
+  a.push(['care','护理','🧴'],['ad','投流','📱']);
+  if(S.liveOpen)a.push(['live','直播','📹']);
+  a.push(['sell','卖货','💼'],['settle','结算','🧾']);
+  return a;
+}
+function nextPhase(from){
+  const order=phaseOrder().map(p=>p[0]);
+  const i=order.indexOf(from);
+  return order[Math.min(i+1,order.length-1)];
+}
+function goNext(from){enterPhase(nextPhase(from));}
+
+/* ---------------- 收货操作 ---------------- */
+function actOffer(oid,act){
+  const o=S.offers.find(x=>x.oid===oid);
+  if(!o||o.status!=='pending')return;
+
+  if(act==='buy'){
+    if(S.cash<o.ask){toast('现金不足','#dc2626');return;}
+    S.cash-=o.ask;S.daily.cost+=o.ask;S.daily.buy+=o.ask;S.total.cost+=o.ask;
+    const it={
+      id:S.uid++,brand:o.brand,model:o.model,retail:o.retail,cond:o.cond,
+      fake:o.fake,                       // 客观真相（玩家不可见）
+      belief:o.appraised?o.appraiseResult:null,  // 你"认为"的真相（可能错）
+      verified:!!o.appraised,verifyCount:0,
+      sellBase:o.sellBase,cost:o.ask,careUsed:0
+    };
+    S.inventory.push(it);
+    o.status='bought';
+    log(`📥 收下 ${o.brand} ${o.model}（${CONDITIONS[o.cond].name}）花费 ${money(o.ask)}`,'');
+    floatText('-'+money(o.ask),'#dc2626');
+    render();
+  }
+  else if(act==='skip'){
+    o.status='skip';o.msg='你放弃了这单生意。';
+    render();
+  }
+  else if(act==='haggle'){
+    if(o.haggleUsed)return;
+    o.haggleUsed=true;
+    const p=clamp(0.35+bestSkill('buyer')*0.05+o.seller.haggle,0.08,0.92);
+    if(chance(p)){
+      // 砍价深度由回收师技能决定：技能越高，越能把价砍到市场价以下
+      const cut=clamp(0.80-bestSkill('buyer')*0.020+o.seller.cut+rnd(-0.03,0.03),0.55,0.93);
+      const nw=Math.max(300,Math.round(o.ask*cut/100)*100);
+      const save=o.ask-nw;o.ask=nw;
+      const vs=Math.round((1-nw/o.market)*100);
+      o.msg=`💬 压价成功！省下 ${money(save)}，现在比市场价低 ${vs}%`;
+      log(`💬 压价成功：${o.brand} ${o.model} → ${money(nw)}（市场价 ${money(o.market)}，低 ${vs}%）`,vs>0?'gold':'warn');
+    }else{
+      if(chance(0.55)){
+        o.status='skip';
+        o.msg='😤 卖家觉得你在羞辱他，拎包走人了。';
+        log(`😤 压价失败，${o.brand} ${o.model} 卖家走人`,'warn');
+      }else{
+        o.msg='😐 卖家摇头："这个价我做不了。"价格没变。';
+      }
+    }
+    render();
+  }
+  else if(act==='appraise'){
+    const fee=Math.max(500,Math.round(o.retail*0.015/100)*100);
+    if(S.cash<fee){toast('现金不足支付鉴定费','#dc2626');return;}
+    S.cash-=fee;S.daily.cost+=fee;S.daily.fee+=fee;S.total.cost+=fee;
+    o.appraised=true;
+    const acc=clamp(0.62+bestSkill('appraiser')*0.032,0.62,0.95);
+    const right=chance(acc);
+    let res;
+    if(right)res=o.fake;
+    else res=o.fake==='genuine'?(chance(0.5)?'superfake':'fake'):'genuine';
+    o.appraiseResult=res;
+    const label=res==='genuine'?'✅ 鉴定为真品':(res==='superfake'?'⚠️ 鉴定为高仿':(res==='fake'?'❌ 鉴定为假货':'—'));
+    o.msg=`🔍 支付鉴定费 ${money(fee)}，${label}`;
+    log(`🔍 鉴定 ${o.brand} ${o.model}：${res==='genuine'?'真品':res==='superfake'?'高仿':'假货'}（花费 ${money(fee)}）`,res==='genuine'?'':'warn');
+    render();
+  }
+}
+
+/* ---------------- 护理 ---------------- */
+function careCapacity(){return staffOf('care').length*2;}
+function careUsedToday(){return S.daily.care;}
+function actCare(id){
+  const it=S.inventory.find(x=>x.id===id);
+  if(!it||it.careUsed>=1)return;
+  if(careUsedToday()>=careCapacity()){toast('护理师今天忙不过来了','#dc2626');return;}
+  const fee=Math.max(300,Math.round(it.retail*0.02/100)*100);
+  if(S.cash<fee){toast('现金不足','#dc2626');return;}
+  S.cash-=fee;S.daily.cost+=fee;S.daily.fee+=fee;S.total.cost+=fee;it.careUsed=1;S.daily.care++;
+  const p=clamp(0.62+bestSkill('care')*0.03,0.62,0.93);
+  if(chance(p)){
+    if(it.cond>0){it.cond--;}
+    else{it.sellBase=Math.round(it.sellBase*1.05);}
+    log(`🧴 ${it.brand} ${it.model} 护理成功，品相提升至 ${condOf(it).name}`,'gold');
+    toast('护理成功 → '+condOf(it).name,'#12a06e');
+  }else if(chance(0.3)){
+    it.cond=clamp(it.cond+1,0,5);
+    log(`🧴 ${it.brand} ${it.model} 护理翻车，品相受损`,'warn');
+    toast('护理翻车！品相受损','#dc2626');
+  }else{
+    log(`🧴 ${it.brand} ${it.model} 护理效果一般，品相未变`,'');
+    toast('效果一般，品相未变','#5d7a6e');
+  }
+  render();
+}
+
+/* ---------------- 抖音投流 ---------------- */
+const AD_TIERS=[
+  {v:0,    t:'不投放',   d:'省下预算，靠自然流量'},
+  {v:3000, t:'小额测试', d:'3,000 元 · 起量慢但稳妥'},
+  {v:10000,t:'常规投放', d:'10,000 元 · 主力获客手段'},
+  {v:30000,t:'重金砸流', d:'30,000 元 · 高风险高曝光'}
+];
+function pickAd(v){S.adBudget=v;render();}
+
+function runAd(){
+  // 注意：这里绝不能 return —— 投流阶段的唯一出口就是这个函数，
+  // 一旦提前返回玩家会被永久卡死。钱不够就自动降级为不投放。
+  let b=S.adBudget;
+  if(b>0&&S.cash<b){
+    log(`📱 现金只有 ${money(S.cash)}，投不起 ${money(b)} 的档位，本场改为不投放。`,'warn');
+    toast('现金不足，本场不投放','#dc2626');
+    b=0;S.adBudget=0;
+  }
+  if(b>0){S.cash-=b;S.daily.ad+=b;S.total.ads+=b;S.total.cost+=b;}
+  let gained=0,viral=false,cust=0;
+  if(b>0){
+    const rf=rivalAdFactor();                 // 对手在同一个流量池里抬价
+    const quality=rnd(0.55,2.0)*S.adPenalty*rf;
+    gained=Math.round(b*rnd(0.05,0.09)*quality*(1+S.rep/260));
+    viral=chance(0.08);
+    if(viral){gained=Math.round(gained*rnd(4,8));S.total.viral++;}
+    cust=Math.round(b/900*rnd(0.8,1.5)*quality*(viral?2.2:1));
+    if(S.adPenalty<1)gained=Math.round(gained*0.6);
+    S.fans=Math.max(0,S.fans+gained);
+    if(rf<0.95&&S.act<2)log(`📈 「${S.rival.name}」在同城竞价，你的投放效果打了 ${Math.round(rf*100)} 折`,'warn');
+  }
+  S.adResult={budget:b,gained,viral,cust};
+  if(b>0){
+    log(`📱 抖音投放 ${money(b)}：涨粉 ${gained}${viral?' 🔥爆款！':''}，即时到店 ${cust} 人`,viral?'gold':'');
+  }else{
+    log('📱 今日未投放广告，仅靠自然流量。','');
+  }
+  if(viral)floatText('🔥 爆款视频！','#0e8a5f');
+  enterPhase(nextPhase('ad'));
+}
+
+/* ---------------- 客户生成 ---------------- */
+function genCustomers(){
+  if(S.inventory.length===0){S.customers=[];return;}
+  const adCust=S.adResult?S.adResult.cust:0;
+  const organic=1+Math.floor(S.fans/1100);
+  const diverted=rivalDivertCustomers();
+  S.rivalDiverted=0;
+  const raw=organic+adCust+S.bonusCustomer+(chance(0.25)?1:0)-diverted;
+  const cap=salesCapacity();
+  const n=clamp(raw,0,Math.min(14,cap));
+  S.lostCustomers=Math.max(0,raw-n);
+  if(diverted>0&&S.act<2){
+    S.rivalDiverted=diverted;
+    log(`🚶 「${S.rival.name}」在门口拉走了你 ${diverted} 位客人`,'warn');
+  }
+  S.customers=[];
+  const taken=[];
+  for(let i=0;i<n;i++){
+    const type=wpick(CUSTOMER_TYPES,c=>Math.max(0.4,c.w()));
+    // 购买力越高的客户越可能看贵的包
+    const allow=it=>{
+      const m=marketOf(it);
+      if(type.tier>=4)return true;
+      if(type.tier===3)return m<=90000;
+      if(type.tier===2)return m<=45000;
+      return m<=20000;
+    };
+    let pool=S.inventory.filter(it=>allow(it)&&!taken.includes(it.id));
+    if(pool.length===0)pool=S.inventory.filter(allow);
+    if(pool.length===0)continue;
+    const sorted=pool.slice().sort((a,b)=>marketOf(b)-marketOf(a));
+    const idx=Math.min(sorted.length-1,Math.floor(Math.pow(Math.random(),type.tier>=4?2.2:0.7)*sorted.length));
+    const it=sorted[idx];
+    taken.push(it.id);
+    const mp=marketOf(it);
+    const premium=1+bestSkill('sales')*0.012;   // 销售越强，越能把价格谈上去
+    const warMul=S.priceWar?0.85:1;            // 价格战期间让利抢客
+    const bid=Math.round(mp*rnd(type.bid[0],type.bid[1])*premium*warMul/100)*100;
+    S.customers.push({cid:S.uid++,type,itemId:it.id,bid,bid0:bid,haggled:false,status:'pending',msg:null});
+  }
+}
+
+/* ---------------- 卖货操作 ---------------- */
+function actCustomer(cid,act){
+  const c=S.customers.find(x=>x.cid===cid);
+  if(!c||c.status!=='pending')return;
+  const it=S.inventory.find(x=>x.id===c.itemId);
+  if(!it){c.status='gone';c.msg='这个包已经不在了。';render();return;}
+
+  if(act==='deal'){
+    const isFake=it.fake!=='genuine';
+    const knowsFake=it.verified&&it.belief!=='genuine';
+    let caught=false;
+    if(isFake){
+      const p=knowsFake?0.34:0.18;
+      caught=chance(p);
+    }
+    if(caught){
+      const comp=Math.round(c.bid*0.5);
+      S.cash-=comp;S.daily.cost+=comp;S.daily.penalty+=comp;S.total.cost+=comp;
+      S.rep=clamp(S.rep-18,0,100);
+      c.status='caught';
+      c.msg=`🚨 客户送去专柜验货，确认是${it.fake==='superfake'?'高仿':'假货'}！全额退款并索赔 ${money(comp)}，声望 -18`;
+      log(`🚨 假货被识破！赔偿 ${money(comp)}，声望 -18`,'warn');
+      S.inventory=S.inventory.filter(x=>x.id!==it.id);
+      S.total.fakeCaught++;
+      floatText('-'+money(comp),'#dc2626');
+    }else{
+      S.cash+=c.bid;S.daily.rev+=c.bid;S.daily.deals++;
+      S.total.rev+=c.bid;S.total.deals++;
+      c.status='sold';
+      const profit=c.bid-it.cost;
+      c.msg=`✅ 成交 ${money(c.bid)}，${profit>=0?'赚':'亏'} ${money(Math.abs(profit))}`;
+      log(`💰 卖出 ${it.brand} ${it.model} → ${money(c.bid)}（${profit>=0?'+':'-'}${money(Math.abs(profit))}）`,profit>=0?'good':'warn');
+      S.inventory=S.inventory.filter(x=>x.id!==it.id);
+      if(isFake)S.total.fakeSold++;
+      S.rep=clamp(S.rep+(isFake?-0.6:0.6),0,100);
+      floatText('+'+money(c.bid),'#12a06e');
+    }
+    render();
+  }
+  else if(act==='haggle'){
+    if(c.haggled)return;
+    c.haggled=true;
+    const p=clamp(0.28+bestSkill('sales')*0.038+(S.rep-50)/320,0.12,0.88);
+    if(chance(p)){
+      const add=Math.round(c.bid*rnd(0.06,0.15)/100)*100;
+      c.bid+=add;
+      c.msg=`💬 谈价成功！客户加价 ${money(add)}`;
+      log(`💬 谈价成功，客户加价到 ${money(c.bid)}`,'gold');
+    }else{
+      c.status='leave';
+      c.msg='😑 客户嫌你磨叽，转身走了。';
+      log('😑 谈价失败，客户离店','warn');
+    }
+    render();
+  }
+  else if(act==='reject'){
+    c.status='leave';
+    c.msg='你婉拒了这位客户。';
+    render();
+  }
+}
+
+/* ---------------- 假货处理 ---------------- */
+function actTorch(id){
+  const it=S.inventory.find(x=>x.id===id);
+  if(!it)return;
+  S.inventory=S.inventory.filter(x=>x.id!==it.id);
+  S.total.fakeTorched++;
+  S.rep=clamp(S.rep+1.5,0,100);
+  if(it.fake==='genuine'){
+    log(`😖 你把一只真品 ${it.brand} ${it.model} 当成假货砸了……鉴定师害死人。`,'warn');
+    toast('等等……这好像是真的？！','#dc2626');
+  }else{
+    log(`🔥 销毁 ${it.brand} ${it.model}（${it.fake==='superfake'?'高仿':'假货'}），声望 +1.5`,'good');
+    toast('已销毁，守住底线','#12a06e');
+  }
+  render();
+}
+
+/* ---------------- 阶段推进 ---------------- */
+function enterPhase(p){S.phase=p;if(p==='sell')genCustomers();if(p==='settle')doSettle();render();}
+
+function doSettle(){
+  // 派驻分店的员工工资由分店自己出，不重复计入老店
+  const wage=S.staff.filter(s=>!s.branchId).reduce((a,s)=>a+salaryOf(s),0);
+  const rent=1000;
+  S.cash-=wage+rent;
+  S.daily.wage=wage;S.daily.rent=rent;
+  S.total.cost+=wage+rent;
+  branchSettle();                      // 各分店自动经营结算
+  // 自然掉粉
+  const decay=Math.round(S.fans*0.02);
+  S.fans=Math.max(0,S.fans-decay);
+  S.rep=clamp(S.rep-0.15,0,100);
+}
+
+/* 第一幕终局判定：市占率过半 = 压过本区对手 */
+const rivalShare=()=>100-S.share;
+const checkAct1=()=>S.share>50;
+/* 第二幕通关：5 个区域全部垄断 */
+const regionsOwned=()=>REGIONS.filter(r=>r.rival&&r.rival.power<=0).length;
+const totalRegions=()=>REGIONS.filter(r=>r.rival).length;
+const checkVictory=()=>S.act>=2&&regionsOwned()>=totalRegions();
+
+function nextDay(){
+  if(S.cash<0){S.over=true;S.phase='over';render();return;}
+  S.day++;
+  if(S.act===1&&S.day>S.maxDay){
+    if(checkAct1()){
+      S.act=2;S.maxDay=Infinity;S.phase='act2';render();return;
+    }
+    S.over=true;S.phase='over';render();return;
+  }
+  if(checkVictory()){S.over=true;S.phase='over';render();return;}
+  startDay();   // startDay 内部会先结算到期退货
+}
+
+/* ---------------- 估值与评级 ---------------- */
+const itemValue=it=>(it.verified&&it.belief!=='genuine')?Math.round(it.cost*0.05):marketOf(it);
+function netWorth(){
+  return S.cash+S.inventory.reduce((a,it)=>a+itemValue(it),0);
+}
+function rankOf(nw){
+  if(nw<650000)return{r:'勉强糊口',c:'#5d7a6e',ic:'🥲',d:'这一年白忙活了，房租都差点交不上。二奢这行，光有热情不够。'};
+  if(nw<1100000)return{r:'小有成就',c:'#2563eb',ic:'🙂',d:'在圈子里站稳了脚跟，账上也有点余粮，明年继续。'};
+  if(nw<1800000)return{r:'二奢新贵',c:'#12a06e',ic:'😎',d:'同行开始打听你的拿货渠道和投流打法了。'};
+  if(nw<2600000)return{r:'行业大佬',c:'#7c3aed',ic:'🤑',d:'本地二奢圈，没人不知道你的名号，你的一句话就是行情。'};
+  return{r:'二奢之王',c:'#0e8a5f',ic:'👑',d:'从一间 40 平的小铺到行业传说，教科书级别的操盘。'};
+}
+
+/* ---------------- 渲染 ---------------- */
+function toast(text,color){
+  const d=document.createElement('div');
+  d.textContent=text;
+  d.style.cssText=`position:fixed;left:50%;top:76px;transform:translateX(-50%);z-index:900;
+    background:${color||'#0e8a5f'};color:#ffffff;font-weight:800;font-size:13px;
+    padding:9px 18px;border-radius:999px;box-shadow:0 10px 30px -8px rgba(255,255,255,.92);
+    animation:fl 1.6s ease-out forwards;pointer-events:none`;
+  document.body.appendChild(d);setTimeout(()=>d.remove(),1600);
+}
+function floatText(text,color){
+  const d=document.createElement('div');
+  d.className='float';d.textContent=text;d.style.color=color||'#0e8a5f';
+  d.style.left=(window.innerWidth/2-60+rnd(-40,40))+'px';
+  d.style.top=(window.innerHeight*0.38)+'px';
+  $('float').appendChild(d);setTimeout(()=>d.remove(),1500);
+}
+
+function render(){
+  if(!S.started){renderTitle();return;}
+  if(S.phase==='over'){renderOver();return;}
+  if(S.phase==='act2'){renderAct2();return;}
+  $('app').innerHTML=`
+    ${renderTop()}
+    <div class="layout">
+      <div class="col-left">${renderStaff()}</div>
+      <div class="stage">${renderSteps()}${renderStage()}</div>
+      <div class="col-right">${renderSide()}</div>
+    </div>`;
+}
+
+/* 第一幕 → 第二幕的幕间结算 */
+function renderAct2(){
+  const R=REGIONS.length-1;
+  const r=rankOf(netWorth());
+  $('app').innerHTML=`
+  <div class="title-wrap" style="padding-top:4vh">
+    <div style="font-size:64px;line-height:1">🏆</div>
+    <div class="big-title" style="font-size:clamp(28px,6.5vw,48px)">击败区域对手</div>
+    <p style="color:var(--dim);max-width:600px;margin:16px auto 0">
+      第 30 天，你的市占率做到 <b class="gold-t">${Math.round(S.share)}%</b>，
+      把「${esc(S.rival.name)}」挤到了 ${Math.round(rivalShare())}%。
+      <br>本区已经装不下你了 —— 是时候出去开分店了。
+    </p>
+
+    <div class="card" style="max-width:640px;margin:28px auto 0;text-align:left">
+      <div class="card-h"><span>📊 第一幕成绩单</span></div>
+      <div class="kv"><span>净资产</span><b class="gold-t" style="font-size:16px">${money(netWorth())}</b></div>
+      <div class="kv"><span>评级（单店阶段）</span><b style="color:${r.c}">${r.ic} ${r.r}</b></div>
+      <div class="kv"><span>本区市占率</span><b>${Math.round(S.share)}% vs ${Math.round(rivalShare())}%</b></div>
+      <div class="kv"><span>累计销售额 / 成交单数</span><b>${money(S.total.rev)} / ${S.total.deals} 单</b></div>
+      <div class="kv"><span>抖音粉丝 / 声望</span><b>${S.fans.toLocaleString('en-US')} / ${S.rep.toFixed(1)}</b></div>
+      <div class="hr"></div>
+      <div class="note good">🎉 解锁「区域扩张」：现在可以花 ${money(REGIONS[1].cost)} 起，
+      在另外 5 个区域开分店。每个区域都有自己的地头蛇，打赢他才能把这家店做成一棵摇钱树。</div>
+      <div class="note">第二幕不再有 30 天限制 —— 目标是把 5 个区域全部<b>垄断</b>。</div>
+    </div>
+
+    <div style="margin:28px 0 10px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <button class="btn gold" style="padding:14px 40px;font-size:15px" onclick="startAct2()">进入第二幕 · 连锁扩张</button>
+      <button class="btn ghost" style="padding:14px 26px" onclick="forceEnd()">就此收官，看总结</button>
+    </div>
+    <div class="brandmark-foot">二奢模拟器 · LUXURY RESALE SIMULATOR</div>
+  </div>`;
+}
+function startAct2(){
+  S.phase='collect';
+  S.day++;
+  log('🎊 第二幕开启：区域扩张。去地图上开分店吧。','gold');
+  startDay();
+}
+function forceEnd(){S.over=true;S.phase='over';render();}
+
+function renderTitle(){
+  $('app').innerHTML=`
+  <div class="title-wrap">
+    <div class="brandmark">SECONDHAND LUXURY</div>
+    <div class="big-title">二奢模拟器</div>
+    <div class="sub-title">老 板 模 拟 器</div>
+    <p style="color:var(--dim);max-width:600px;margin:22px auto 0;font-size:13.5px;line-height:1.9">
+      你盘下一间 40 平的二手奢侈品店，兜里揣着 <b class="gold-t">¥500,000</b>。<br>
+      收货、鉴定、护理、投流、卖货 —— 30 天后，你是关门大吉，还是二奢之王？
+    </p>
+    <div class="feat">
+      <div><div class="fi">🎒</div><div class="ft">回收师</div><div class="fd">上门收货，初判真伪，帮你压价砍到卖家肉疼</div></div>
+      <div><div class="fi">🔍</div><div class="ft">鉴定师</div><div class="fd">一次鉴定费换一个真相，但高手也会看走眼</div></div>
+      <div><div class="fi">🧴</div><div class="ft">护理师</div><div class="fd">翻新提品相，售价直接上一个台阶</div></div>
+      <div><div class="fi">💼</div><div class="ft">销售</div><div class="fd">接待客户，谈价加成，决定你能接多少客</div></div>
+    </div>
+    <div class="feat" style="margin-top:0">
+      <div><div class="fi">📱</div><div class="ft">抖音投流</div><div class="fd">核心获客渠道。预算越高曝光越多，还有机会出爆款</div></div>
+      <div><div class="fi">🎲</div><div class="ft">随机抉择</div><div class="fd">压价、鉴定、议价，每一步都是概率博弈</div></div>
+      <div><div class="fi">🚨</div><div class="ft">假货风险</div><div class="fd">高仿混进来怎么办？销毁，还是冒险混卖？</div></div>
+      <div><div class="fi">🌪️</div><div class="ft">突发事件</div><div class="fd">爆款视频、黑粉差评、同行截胡、明星同款</div></div>
+    </div>
+    <div style="margin:30px 0 10px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <button class="btn gold" style="padding:14px 44px;font-size:16px;border-radius:12px" onclick="startGame()">开 始 经 营</button>
+      <button class="btn ghost" style="padding:14px 26px" onclick="showHelp()">玩法说明</button>
+    </div>
+    <div class="brandmark-foot">二奢模拟器 · LUXURY RESALE SIMULATOR</div>
+  </div>`;
+}
+
+function startGame(){try{localStorage.removeItem('ershe_save');}catch(e){}newGame();}
+function showHelp(){
+  if(document.getElementById('helpMask'))return;
+  const m=document.createElement('div');
+  m.className='mask';m.id='helpMask';
+  m.innerHTML=`<div class="modal">
+    <h2>二奢模拟器 · 玩法说明</h2>
+    <p>30 天，一间小店，把 ¥50 万滚成你的传说。</p>
+    <h3>每日流程</h3>
+    <ul>
+      <li><b>① 收货</b> — 回收师带回 1~7 条货源。<b class="gold-t">卖家要价通常高于市场售价，必须压价才有利润</b>；也可以直接收（多半亏）、送鉴定或放弃。</li>
+      <li><b>② 包展</b>（每 5 天一次）— 同行走货的展会。扫货价低到 6 折但不能验货；租展位可以一次性甩货清库存。</li>
+      <li><b>③ 护理</b> — 花钱让护理师翻新品相，成功提一档（售价上涨）。</li>
+      <li><b>④ 投流</b> — 选抖音广告预算，曝光决定涨粉与当天到店客户数。</li>
+      <li><b>⑤ 直播</b>（不定期开放）— 溢价卖货，但退货率高，货款几天后会被退回。</li>
+      <li><b>⑥ 卖货</b> — 客户上门出价，你可以成交、谈价加码或拒绝。</li>
+      <li><b>⑦ 结算</b> — 扣工资、房租，粉丝每天自然掉 2%。</li>
+    </ul>
+    <h3>直播带货：赚得快，也可能死得快</h3>
+    <ul>
+      <li>直播成交价约为市价的 <b>1.26~1.75 倍</b>，远高于门店零售（门店约 0.95 倍）。</li>
+      <li>但退货率 <b>22%~48%</b>（档位越高、声望越低越容易退），假货上直播退货率超过 <b>62%</b>。</li>
+      <li>退货会在一到三天后到账，届时<b>退还全部货款 + 2% 处理费</b>，货品相降一档回到仓库。</li>
+      <li>档位越大越好赚，但压货也越狠：小场溢价 +14%，大场 +52% 且涨粉 9,000~18,000，是滚雪球的关键。</li>
+      <li class="gold-t">最危险的不是亏损，是现金流：钱花出去了，退款却在路上。右侧会实时预警。</li>
+      <li>直播间卖出的假货被送检 = 退款 + 声望 -12 + 货也没了。</li>
+    </ul>
+    <h3>同行包展：便宜进货 + 快速出货</h3>
+    <ul>
+      <li><b>扫货</b>：批发价约为市场售价的 72%，比砍价收货更便宜；但现场不验货、不能砍价，假货率约 28%，只能听一句同行口碑（准确率仅 42%~64%）。每天最多拿「3 + 回收师人数」件。</li>
+      <li><b>甩货</b>：花 3,000 元租展位，就能把库存<b>一次性、不限量</b>按市价 58% 清掉 —— 不受门店接待上限限制，即时到账。</li>
+      <li>同行会验货：甩出去的假货，明知故犯有 <b>45%</b> 被识破，没验过的也有 <b>28%</b>。识破 = 货被扣下 + 声望 -12。</li>
+    </ul>
+    <h3>收货定价：利润只能从压价里来</h3>
+    <ul>
+      <li>卖家开价通常是<b>市场售价的 100%~120%</b> —— 也就是<b>比卖价还高，或者持平</b>。</li>
+      <li>所以<b class="gold-t">不砍价直接收 = 亏本</b>。实测：从不压价的玩法平均会亏到破产。</li>
+      <li><b>压价</b>成功后价格会砍到市场价的 <b>55%~85%</b>，这中间的差价才是你的毛利。</li>
+      <li>砍得多深取决于 <b>回收师技能</b>：技能 1 平均砍到市价 80%（毛利约 +2,900），技能 10 能砍到 64%（毛利约 +9,100）。<b>回收师是店里最值钱的岗位。</b></li>
+      <li>卖家分三种：🏃 着急出手（好砍、成功率 +22%）、🙂 普通卖家、🧐 精明商家（难砍、折扣少 7%）。</li>
+      <li>品牌也有<b>议价硬度</b>：爱马仕最硬（+6%），蔻驰最好砍（-8%）。卡片上会直接标出「硬 / 正常 / 好砍」。</li>
+      <li>压价失败有 55% 概率卖家直接拎包走人，这单就没了。</li>
+      <li>不砍价也不是绝对没机会：如果能卖给「收藏玩家」（出价最高到市价 135%），或者收货后护理提品相，也有可能扳回来 —— 但那是小概率。</li>
+    </ul>
+    <h3>关键机制</h3>
+    <ul>
+      <li><b class="gold-t">真假难辨</b>：市场上有约 16% 的高仿/假货。回收师"初判"只有 50%~86% 准；鉴定师"送检"要花钱，也不是 100% 准。买假货 = 血亏。</li>
+      <li><b class="gold-t">混卖风险</b>：未鉴定的包卖出去有 18% 概率被客户识破；明知是假还卖，风险升到 34%。被识破要退款+赔偿+声望暴跌。</li>
+      <li><b class="gold-t">声望</b>：影响客户档次与出价。高声望吸引企业家和收藏玩家。</li>
+      <li><b class="gold-t">粉丝</b>：抖音粉丝是长期资产，每天持续带来自然到店客户。</li>
+      <li><b class="gold-t">爆款</b>：每次投放有 8% 概率出爆款视频，涨粉 ×4~8、到店翻倍。</li>
+    </ul>
+    <h3>竞争对手与区域扩张</h3>
+    <ul>
+      <li>本区盘踞着老对手（如「聚奢汇」）。右侧面板实时显示<b>市占率对比</b>和双方实力。</li>
+      <li>他每天都搞事：<b>截走你的货源</b>、<b>从门口拉走你的客人</b>、<b>抬高你的投放成本</b>。你市占越低，他越嚣张。</li>
+      <li>你每天可以<b>出手一次</b>反击：📢舆论攻势 · 💰高薪挖角 · 🔥价格战（今日售价 -15% 换市占） · 🤝商务合作（买 3 天太平）。</li>
+      <li>市占率随双方实力差每天消长。<b>第 30 天市占率过半（&gt;50%）即击败本区对手</b>，解锁第二幕。</li>
+      <li>第二幕：可在另外 <b>5 个区域</b>开分店。每区都有自己的地头蛇，店铺会自动经营，但对手越强利润越薄。</li>
+      <li>对每个区域发动<b>营销战</b>可削弱他（花费 = 对手实力 × 6000 × 管理跨度系数）；实力打到 <b>0</b> 即垄断该区，<b>该店利润 ×2.2</b>。</li>
+      <li><b class="gold-t">管理跨度</b>：店开得越多，总部精力越分散 —— 单店效率下降、营销战开销上涨。别一口气全铺开，先把手上的店打到垄断。</li>
+      <li>区域地头蛇每天也在恢复元气，想垄断就得趁热打铁，慢慢磨是磨不死的。</li>
+      <li>分店必须有<b>店长</b>（从员工里自动指派，也可以手工换人），店长技能直接决定营收。</li>
+      <li>最终目标：把 5 个区域全部垄断。</li>
+    </ul>
+    <h3>胜负</h3>
+    <p>第一幕 30 天，按净资产评级；市占率过半可进入第二幕连锁扩张。<b>现金变负数直接破产出局</b>（退货退款和分店亏损都可能击穿现金流）。</p>
+    <div style="text-align:center;margin-top:22px">
+      <button class="btn gold" style="padding:11px 34px" onclick="document.getElementById('helpMask').remove()">知道了</button>
+    </div>
+  </div>`;
+  document.body.appendChild(m);
+}
+
+function renderTop(){
+  const nw=netWorth();
+  const dayLabel=S.act>=2?`第 <b>${S.day}</b> 天`:`第 <b>${S.day}</b>/${S.maxDay} 天`;
+  const share=S.act>=2
+    ? `<div class="stat">🏆 垄断 <b class="g">${S.total.regionWins}/5</b></div>`
+    : `<div class="stat">⚔️ 市占 <b class="${S.share>50?'g':'neg'}">${Math.round(S.share)}%</b></div>`;
+  return `<div class="topbar">
+    <div class="brand">二奢模拟器</div>
+    <div class="stat">📅 ${dayLabel}</div>
+    <div class="stat">💵 现金 <b class="${S.cash<0?'neg':'g'}">${money(S.cash)}</b></div>
+    <div class="stat">📦 库存 <b>${S.inventory.length}</b></div>
+    ${S.branches.length?`<div class="stat">🏬 分店 <b>${S.branches.length}</b></div>`:''}
+    <div class="stat">⭐ 声望 <b>${S.rep.toFixed(1)}</b></div>
+    <div class="stat">📱 粉丝 <b>${wshort(S.fans)}</b></div>
+    ${share}
+    <div class="stat">🏦 净资产 <b>${money(nw)}</b></div>
+    <div class="spacer"></div>
+    <button class="btn ghost sm" onclick="showHelp()">玩法</button>
+    <button class="btn ghost sm" onclick="if(confirm('确定放弃当前经营，重新开一局？'))startGame()">重开</button>
+  </div>`;
+}
+
+function renderSteps(){
+  const order=phaseOrder();
+  const cur=order.findIndex(o=>o[0]===S.phase);
+  return `<div class="steps">${order.map((o,i)=>{
+    const cls=i===cur?'on':(i<cur?'done':'');
+    return `<div class="step ${cls}"><span class="si">${o[2]}</span>${o[1]}</div>`;
+  }).join('')}</div>`;
+}
+
+/* ---------- 主舞台 ---------- */
+function renderStage(){
+  switch(S.phase){
+    case 'collect':return stageCollect();
+    case 'fair':   return stageFair();
+    case 'care':   return stageCare();
+    case 'ad':     return stageAd();
+    case 'live':   return stageLive();
+    case 'sell':   return stageSell();
+    case 'settle': return stageSettle();
+    default:return '';
+  }
+}
+
+/* ---------- 同行包展 ---------- */
+function stageFair(){
+  const bought=fairBoughtCount(),cap=fairCap();
+  const invVal=S.inventory.reduce((a,it)=>a+itemValue(it),0);
+  const dumpEst=Math.round(invVal*FAIR_DUMP_MUL);
+  let h=`<div class="card">
+    <div class="card-h"><span>🏷️ 同行包展 · 第 ${S.day} 天</span><span class="tag">扫货 ${bought}/${cap} 件</span></div>
+    <div class="note">全国同行聚在会展中心走货。<b class="gold-t">扫货</b>价约为市价 7.2 折，比你自己砍价收货还便宜，而且当场就得拍板 —— 现场不给验货、也不能砍价，真假全凭运气。
+    <br><b class="gold-t">甩货</b>可以一次性清空库存，即时到账、不受门店接待上限限制，代价是价格只有市价的 ${Math.round(FAIR_DUMP_MUL*100)}%。</div>`;
+
+  h+=`<div style="font-weight:800;font-size:13px;color:var(--brand);margin:14px 0 8px">🛒 扫货区 · 批发价约为市场售价的 72%</div>`;
+  h+=S.fairLots.map(lotHTML).join('');
+  h+=`<div class="tiny muted" style="margin-bottom:6px">回收师 ${staffOf('buyer').length} 人 · 今天最多拿 ${cap} 件 · 已拿 ${bought} 件</div>`;
+
+  h+=`<div class="hr"></div>
+    <div style="font-weight:800;font-size:13px;color:var(--brand);margin:0 0 8px">📤 甩货区 · 一次性清库存</div>`;
+  if(!S.fairBoothPaid){
+    h+=`<div class="note">租一个展位才能摆摊甩货，展位费 <b>${money(FAIR_BOOTH_FEE)}</b>（今天有效）。</div>
+        <button class="btn gold block" onclick="payBooth()" ${S.cash<FAIR_BOOTH_FEE?'disabled':''}>🏷️ 租展位 ${money(FAIR_BOOTH_FEE)}</button>`;
+  }else if(S.inventory.length===0){
+    h+=`<div class="empty" style="padding:16px"><span class="e">📦</span>库存是空的，没什么可甩</div>`;
+  }else{
+    h+=`<div class="note good">展位已租好。当前库存 ${S.inventory.length} 件，全部甩掉约可回款 <b>${money(dumpEst)}</b>（估值 ${money(invVal)}）。</div>
+        <button class="btn gold block" style="margin-bottom:10px" onclick="actFairDumpAll()">📤 全部甩货（${S.inventory.length} 件 · 约 ${money(dumpEst)}）</button>
+        <div class="tiny muted" style="margin-bottom:6px">也可以挑着甩：</div>`+
+        S.inventory.map(it=>{
+          const price=Math.round(marketOf(it)*FAIR_DUMP_MUL/100)*100;
+          const knowsFake=it.verified&&it.belief!=='genuine';
+          const gain=price-it.cost;
+          return `<div class="inv" style="${knowsFake?'border-color:#f3b6b6':''}">
+            <div class="ic" style="color:${BMAP[it.brand].color}">${BMAP[it.brand].ic}</div>
+            <div style="flex:1;min-width:0">
+              <div class="nm">${it.brand} ${it.model}</div>
+              <div class="mt">${condOf(it).ic}${condOf(it).name} · 成本 ${money(it.cost)}${knowsFake?' <span class="neg">· 你已知是假</span>':''}</div>
+              <div class="mt">甩货价 <b style="color:var(--brand)">${money(price)}</b> <span class="${gain>=0?'pos':'neg'}">(${gain>=0?'+':''}${wshort(gain)})</span></div>
+            </div>
+            <button class="btn sm ${knowsFake?'red':'gold'}" onclick="actFairDump(${it.id})">甩货</button>
+          </div>`;
+        }).join('');
+  }
+  h+=`<div class="hr"></div><div class="between">
+      <span class="tiny muted">今日展会支出 ${money(S.daily.fairBuy+S.daily.dumpFee)}</span>
+      <button class="btn" onclick="goNext('fair')">离开展会 →</button></div></div>`;
+  return h;
+}
+
+function lotHTML(l){
+  if(l.status==='bought'){
+    return `<div class="deal ok dim"><div class="deal-top"><div>
+      <div class="deal-title">${l.brand} ${l.model}</div>
+      <div class="deal-sub">已拿下 · 花费 ${money(l.ask)}</div></div>
+      <span class="chip" style="background:#ddf5e7;color:#0b7a4f">已扫</span></div></div>`;
+  }
+  const b=BMAP[l.brand];
+  const cond=CONDITIONS[l.cond];
+  const mp=Math.round(l.sellBase*cond.mul);
+  const margin=mp-l.ask;
+  const hm={real:['🟢 同行说没问题','#ddf5e7','#0b7a4f'],
+            fake:['🔴 有人嘀咕是假的','#fde8e8','#b91c1c'],
+            unsure:['🟡 说不好','#fdf1d6','#0e8a5f']}[l.hint]||['🟡 说不好','#fdf1d6','#0e8a5f'];
+  const full=fairBoughtCount()>=fairCap();
+  return `<div class="deal">
+    <div class="deal-top">
+      <div><div class="deal-title" style="color:${b.color}">${b.ic} ${l.brand} <span style="color:var(--txt)">${l.model}</span></div>
+      <div class="deal-sub">公价 ${money(l.retail)} · ${cond.ic} ${cond.name}</div></div>
+      <div style="text-align:right"><div class="price">${money(l.ask)}</div><div class="tiny muted">批发价</div></div>
+    </div>
+    <div class="row" style="margin-bottom:8px"><span class="chip" style="background:${hm[1]};color:${hm[2]}">${hm[0]}</span>
+      <span class="chip" style="background:#eaf4ee;color:#5d7a6e">现场不验货</span></div>
+    <div class="kv"><span>预估市场售价</span><b>${money(mp)}</b></div>
+    <div class="kv"><span>若为正品的毛利</span><b class="${margin>=0?'pos':'neg'}">${margin>=0?'+':''}${money(margin)}</b></div>
+    <div style="margin-top:10px"><button class="btn gold block" onclick="actFairBuy(${l.lid})" ${full?'disabled':''}>
+      ${full?'今天拿不动了':'🛒 收下 '+money(l.ask)}</button></div>
+  </div>`;
+}
+
+/* ---------- 直播带货专场 ---------- */
+function stageLive(){
+  if(S.liveResult)return stageLiveResult();
+  const t=liveTier();
+  const cap=liveCap();
+  const picks=S.livePicks;
+  const avgRet=S.inventory.length?Math.round(S.inventory.reduce((a,it)=>a+liveReturnRate(it),0)/S.inventory.length*100):0;
+  let h=`<div class="card">
+    <div class="card-h"><span>📹 直播带货专场</span><span class="tag">已选 ${picks.length}/${cap} 件</span></div>
+    <div class="note warn">直播能卖出远高于门店的价格 —— 但<b>退货率高</b>，货款可能在一到三天后被退回去。
+    如果那笔钱已经花掉了，你的现金流会当场断裂。假货上直播基本必被送检。</div>
+    <div style="font-weight:800;font-size:13px;color:var(--brand);margin:12px 0 8px">① 选投入档位</div>`;
+  h+=LIVE_TIERS.map(x=>`
+    <button class="adopt ${S.liveTier===x.id?'on':''}" onclick="setLiveTier(${x.id})" ${S.cash<x.fee?'disabled':''}>
+      <div><div class="t">${x.ic} ${x.name}</div><div class="d">${x.desc}</div></div>
+      <div style="text-align:right"><div class="price" style="font-size:15px">${money(x.fee)}</div>
+      <div class="tiny muted">溢价 +${Math.round(x.premium*100)}%</div></div>
+    </button>`).join('');
+  if(t){
+    h+=`<div class="note good">预计成交价约为市价的 <b>${Math.round((1.12+t.premium+bestSkill('sales')*0.015)*100)}%</b>　·　
+      平均退货率约 <b>${avgRet}%</b>　·　上架上限 <b>${cap}</b> 件</div>`;
+  }
+  h+=`<div style="font-weight:800;font-size:13px;color:var(--brand);margin:14px 0 8px">② 选品上架（点选切换）</div>`;
+  if(S.inventory.length===0)h+=`<div class="empty" style="padding:16px"><span class="e">📦</span>库存是空的，没法开播</div>`;
+  else h+=`<div style="max-height:340px;overflow-y:auto">`+S.inventory.map(it=>{
+    const on=picks.includes(it.id);
+    const knowsFake=it.verified&&it.belief!=='genuine';
+    const rp=Math.round(liveReturnRate(it)*100);
+    const est=t?Math.round(marketOf(it)*(1.12+t.premium+bestSkill('sales')*0.015)):0;
+    return `<button class="inv" style="width:100%;text-align:left;${on?'border-color:var(--brand);background:rgba(14,138,95,.08)':''}${knowsFake?'border-color:#f3b6b6':''}"
+        onclick="toggleLivePick(${it.id})">
+      <div class="ic" style="color:${BMAP[it.brand].color}">${on?'✅':BMAP[it.brand].ic}</div>
+      <div style="flex:1;min-width:0">
+        <div class="nm">${it.brand} ${it.model}</div>
+        <div class="mt">${condOf(it).ic}${condOf(it).name} · 成本 ${money(it.cost)}${knowsFake?' <span class="neg">· 你已知是假</span>':''}</div>
+        <div class="mt">${t?`预估成交 <b style="color:var(--brand)">${money(est)}</b>`:'先在①选档位'} · 退货率 <span class="${rp>=60?'neg':''}">${rp}%</span></div>
+      </div>
+    </button>`;
+  }).join('')+`</div>`;
+  h+=`<div class="hr"></div><div class="between" style="gap:10px">
+      <button class="btn ghost" onclick="goNext('live')">今天不播 →</button>
+      <button class="btn gold" style="flex:1" onclick="startLive()" ${(!t||picks.length===0)?'disabled':''}>
+        ${!t?'请先选档位':(picks.length===0?'请先选品上架':`🔴 开播（坑位费 ${money(t.fee)}）`)}</button>
+    </div></div>`;
+  return h;
+}
+
+function stageLiveResult(){
+  const r=S.liveResult;
+  let h=`<div class="card">
+    <div class="card-h"><span>📹 直播战报 · ${r.tier.name}</span><span class="tag">回款 ${money(r.rev)}</span></div>
+    <div class="kv"><span>上架件数</span><b>${r.rows.length} 件</b></div>
+    <div class="kv"><span>成交件数</span><b class="pos">${r.sold} 件</b></div>
+    <div class="kv"><span>直播间回款</span><b class="pos">+${money(r.rev)}</b></div>
+    <div class="kv"><span>坑位费 / 投流费</span><b class="neg">-${money(r.fee)}</b></div>
+    <div class="kv"><span>预计退货</span><b class="${r.ret>0?'neg':''}">${r.ret} 件（约 ${r.sold?Math.round(r.ret/r.sold*100):0}%）</b></div>
+    <div class="kv"><span>直播间涨粉</span><b class="pos">+${(r.fans||0).toLocaleString('en-US')}</b></div>
+    <div class="kv"><span>门店声望</span><b class="pos">+${r.tier.rep}</b></div>
+    <div class="note ${r.ret>0?'warn':'good'}">${r.ret>0
+      ? `⚠️ 这 ${r.ret} 件的货款会在这几天陆续被退回，总计约 <b>${money(r.rows.filter(x=>x.willReturn).reduce((a,x)=>a+(x.price||0),0))}</b>。别把钱全花出去了。`
+      : '本场直播居然一件都没退，运气不错。'}</div>`;
+  h+=r.rows.map(x=>{
+    const b=BMAP[x.it.brand];
+    if(x.status==='unsold'){
+      return `<div class="inv"><div class="ic">${b.ic}</div><div style="flex:1;min-width:0">
+        <div class="nm">${x.it.brand} ${x.it.model}</div><div class="mt muted">流拍了，没人出价</div></div></div>`;
+    }
+    return `<div class="inv"><div class="ic" style="color:${b.color}">${b.ic}</div><div style="flex:1;min-width:0">
+      <div class="nm">${x.it.brand} ${x.it.model}</div>
+      <div class="mt">成交 <b class="gold-t">${money(x.price)}</b>（成本 ${money(x.it.cost)}）
+        ${x.willReturn?'<span class="neg"> · 将被退货</span>':'<span class="pos"> · 已成交</span>'}</div>
+    </div></div>`;
+  }).join('');
+  h+=`<div class="hr"></div><button class="btn gold block" style="padding:12px" onclick="goNext('live')">结束直播，回到门店 →</button></div>`;
+  return h;
+}
+
+function stageCollect(){
+  const pending=S.offers.filter(o=>o.status==='pending').length;
+  let h=`<div class="card">
+    <div class="card-h"><span>🎒 收货台 · 第 ${S.day} 天</span><span class="tag">待处理 ${pending}</span></div>`;
+  if(S.event)h+=`<div class="note warn">${S.event.ic} <b>${S.event.title}</b>：${S.event.desc}<br><span class="tiny">→ ${S.event.eff}</span></div>`;
+  if(S.offers.length===0)h+=`<div class="empty"><span class="e">📭</span>今天没有人上门送货<br><span class="tiny">多招几个回收师，货源会更充足</span></div>`;
+  h+=S.offers.map(offerHTML).join('');
+  h+=`<div class="hr"></div>
+    <div class="between">
+      <span class="tiny muted">回收师 ${staffOf('buyer').length} 人 · 初判准确率约 ${Math.round(clamp(0.50+bestSkill('buyer')*0.035,0.5,0.86)*100)}%</span>
+      <button class="btn gold" onclick="goNext('collect')">结束收货 →</button>
+    </div></div>`;
+  return h;
+}
+
+function offerHTML(o){
+  if(o.status==='bought'){
+    return `<div class="deal ok dim"><div class="deal-top"><div>
+      <div class="deal-title">${o.brand} ${o.model}</div>
+      <div class="deal-sub">已收入库 · 花费 ${money(o.ask)}</div></div>
+      <span class="chip" style="background:#ddf5e7;color:#0b7a4f;border-color:#a9e0c4">已收下</span></div></div>`;
+  }
+  if(o.status==='skip'){
+    return `<div class="deal dim"><div class="deal-top"><div>
+      <div class="deal-title">${o.brand} ${o.model}</div>
+      <div class="deal-sub">${o.msg||'已放弃'}</div></div>
+      <span class="chip" style="background:#eef4f1;color:#5d7a6e">已放弃</span></div></div>`;
+  }
+  const b=BMAP[o.brand];
+  const cond=CONDITIONS[o.cond];
+  const mp=o.market||Math.round(o.sellBase*cond.mul);
+  const fee=Math.max(500,Math.round(o.retail*0.015/100)*100);
+  const margin=mp-o.ask;
+  const hagP=clamp(0.35+bestSkill('buyer')*0.05+o.seller.haggle,0.08,0.92);
+  // 砍价后能到多少（给玩家一个预期区间）
+  const cutMid=clamp(0.80-bestSkill('buyer')*0.020+o.seller.cut,0.55,0.93);
+  const afterMid=Math.round(o.ask*cutMid);
+  const afterMargin=mp-afterMid;
+  const hintMap={real:['🟢 看真','#ddf5e7','#0b7a4f'],fake:['🔴 存疑/看假','#fde8e8','#b91c1c'],unsure:['🟡 拿不准','#fdf1d6','#0e8a5f']};
+  const hm=hintMap[o.hint];
+
+  let body='';
+  if(o.appraised){
+    const r=o.appraiseResult;
+    const col=r==='genuine'?['#12a06e','rgba(18,160,110,.10)']:(r==='superfake'?['#0e8a5f','rgba(14,138,95,.10)']:['#dc2626','rgba(220,38,38,.09)']);
+    body+=`<div class="note" style="border-color:${col[0]};color:${col[0]};background:${col[1]}">
+      鉴定结果：<b>${r==='genuine'?'真品 ✅':r==='superfake'?'高仿 ⚠️':'假货 ❌'}</b>${o.appraiseResult!==o.fake?'　<span class="tiny">（鉴定师好像看走眼了…）</span>':''}</div>`;
+  }
+
+  return `<div class="deal ${o.appraised&&o.appraiseResult!=='genuine'?'fake':''}">
+    <div class="deal-top">
+      <div>
+        <div class="deal-title" style="color:${b.color}">${b.ic} ${o.brand} <span style="color:var(--txt)">${o.model}</span></div>
+        <div class="deal-sub">公价 ${money(o.retail)} · ${cond.ic} ${cond.name}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="price">${money(o.ask)}</div>
+        <div class="tiny muted">卖家要价</div>
+      </div>
+    </div>
+    <div class="row" style="margin-bottom:8px">
+      <span class="chip" style="background:${hm[1]};color:${hm[2]}">${hm[0]}</span>
+      <span class="chip" style="background:#eaf4ee;color:#5d7a6e">${o.seller.ic} ${o.seller.name}</span>
+      <span class="chip" style="background:#eef4f1;color:#5d7a6e">议价硬度 ${b.firm>=1.03?'硬':b.firm>=0.98?'正常':'好砍'}</span>
+    </div>
+    <div class="kv"><span>预估市场售价</span><b>${money(mp)}</b></div>
+    <div class="kv"><span>不砍价直接收</span><b class="${margin>=0?'pos':'neg'}">${margin>=0?'+':''}${money(margin)}</b></div>
+    <div class="kv"><span>砍价后预计到手价</span><b class="${afterMargin>=0?'pos':'neg'}">约 ${money(afterMid)}（${afterMargin>=0?'+':''}${money(afterMargin)}）</b></div>
+    <div class="note tiny" style="margin-top:8px">「${o.seller.line}」</div>
+    ${margin<0?`<div class="note warn tiny">⚠️ 要价已经高于市场售价 —— <b>不压价就是亏本</b>。压价成功率 ${Math.round(hagP*100)}%，失败他可能直接走人。</div>`:''}
+    ${body}
+    ${o.msg?`<div class="note tiny">${o.msg}</div>`:''}
+    <div class="grid2" style="margin-top:10px">
+      <button class="btn gold" onclick="actOffer(${o.oid},'buy')">💰 直接收下${margin<0?' (亏)':''}</button>
+      <button class="btn" onclick="actOffer(${o.oid},'appraise')" ${o.appraised?'disabled':''}>🔍 送鉴定 ${money(fee)}</button>
+      <button class="btn ${o.haggleUsed?'ghost':'gold'}" onclick="actOffer(${o.oid},'haggle')" ${o.haggleUsed?'disabled':''}>💬 压价（成功 ${Math.round(hagP*100)}%）</button>
+      <button class="btn ghost" onclick="actOffer(${o.oid},'skip')">🙅 放弃</button>
+    </div>
+  </div>`;
+}
+
+function stageCare(){
+  const cap=careCapacity(),used=S.daily.care;
+  let h=`<div class="card">
+    <div class="card-h"><span>🧴 护理工坊</span><span class="tag">今日名额 ${used}/${cap}</span></div>
+    <div class="note tiny">护理能提升品相（售价上涨约 8%~12%）。护理费为公价的 2%，每个包只能护理一次。</div>`;
+  if(staffOf('care').length===0)h+=`<div class="empty"><span class="e">🚫</span>没有护理师，无法护理</div>`;
+  const list=S.inventory.filter(it=>it.careUsed<1);
+  if(S.inventory.length===0)h+=`<div class="empty"><span class="e">📦</span>库存空空，先去收货</div>`;
+  else if(list.length===0)h+=`<div class="empty"><span class="e">✅</span>所有包都护理过了</div>`;
+  else h+=list.map(it=>{
+    const fee=Math.max(300,Math.round(it.retail*0.02/100)*100);
+    const p=Math.round(clamp(0.62+bestSkill('care')*0.03,0.62,0.93)*100);
+    const full=used>=cap;
+    return `<div class="deal">
+      <div class="deal-top"><div>
+        <div class="deal-title" style="color:${BMAP[it.brand].color}">${BMAP[it.brand].ic} ${it.brand} ${it.model}</div>
+        <div class="deal-sub">${condOf(it).ic} ${condOf(it).name} · 成本 ${money(it.cost)}</div></div>
+        <div style="text-align:right"><div class="price">${money(marketOf(it))}</div><div class="tiny muted">当前市值</div></div>
+      </div>
+      <button class="btn block ${full?'ghost':'gold'}" onclick="actCare(${it.id})" ${full?'disabled':''}>
+        ${full?'今日名额已用完':`🧴 护理（${money(fee)}，成功率 ${p}%）`}</button>
+    </div>`;
+  }).join('');
+  h+=`<div class="hr"></div><div class="between">
+    <span class="tiny muted">护理师 ${staffOf('care').length} 人 · 每日名额 ${cap}</span>
+    <button class="btn gold" onclick="goNext('care')">进入投流 →</button></div></div>`;
+  return h;
+}
+
+function stageAd(){
+  const organic=1+Math.floor(S.fans/1100);
+  const cap=salesCapacity();
+  let h=`<div class="card">
+    <div class="card-h"><span>📱 抖音投流 · 获客引擎</span><span class="tag">粉丝 ${wshort(S.fans)}</span></div>
+    <div class="note">自然流量每天带来约 <b>${organic}</b> 位到店客户。投广告能立刻拉来新客，并把粉丝沉淀成长期资产。
+    <br>⚠️ 门店接待上限 <b>${cap} 人/天</b>（由销售人数决定），超出的客流会白白流失。</div>`;
+  if(S.adPenalty<1)h+=`<div class="note warn">📉 平台限流中：今日广告效果打 45 折</div>`;
+  h+=AD_TIERS.map(t=>`
+    <button class="adopt ${S.adBudget===t.v?'on':''}" onclick="pickAd(${t.v})" ${S.cash<t.v&&t.v>0?'disabled':''}>
+      <div><div class="t">${t.t}</div><div class="d">${t.d}</div></div>
+      <div class="price" style="font-size:15px">${t.v===0?'—':money(t.v)}</div>
+    </button>`).join('');
+  if(S.adBudget>0){
+    const est=Math.round(S.adBudget*0.07*(1+S.rep/260));
+    const c=Math.round(S.adBudget/900*1.15);
+    const over=c+organic>cap;
+    h+=`<div class="note ${over?'warn':'good'}">预估涨粉 <b>${wshort(est)}</b> 左右，即时到店约 <b>${c}</b> 人${over?`　（超出接待能力 ${cap} 人，建议先招销售）`:'（实际有波动，8% 概率出爆款视频）'}</div>`;
+  }
+  h+=`<div class="hr"></div><div class="between" style="gap:10px">
+    <span class="tiny muted">今日已花广告费 ${money(S.daily.ad)}</span>
+    <button class="btn ghost" onclick="pickAd(0);runAd()">跳过投流 →</button>
+    <button class="btn gold" style="flex:1" onclick="runAd()">${S.adBudget>0?`🚀 投放 ${money(S.adBudget)} 并营业 →`:'🚀 开始营业 →'}</button></div></div>`;
+  return h;
+}
+
+function stageSell(){
+  let h=`<div class="card">
+    <div class="card-h"><span>💼 门店营业</span><span class="tag">到店 ${S.customers.length} 人</span></div>`;
+  if(S.adResult)h+=`<div class="note ${S.adResult.viral?'good':''}">
+    📱 今日投流 ${money(S.adResult.budget)} · 涨粉 <b>${S.adResult.gained}</b>${S.adResult.viral?' 🔥爆款':''} · 广告带来 ${S.adResult.cust} 位客户</div>`;
+  if(S.lostCustomers>0)h+=`<div class="note warn">😢 有 <b>${S.lostCustomers}</b> 位客户因为没人接待，转头去了隔壁店。招销售可以提升日接待上限（当前 ${salesCapacity()} 人/天）。</div>`;
+  if(S.customers.length===0)h+=`<div class="empty"><span class="e">🚪</span>今天门可罗雀<br><span class="tiny">${S.inventory.length===0?'库存为空，先收货':'加大抖音投放能带来更多客流'}</span></div>`;
+  else h+=S.customers.map(customerHTML).join('');
+  const left=S.customers.filter(c=>c.status==='pending').length;
+  h+=`<div class="hr"></div><div class="between">
+    <span class="tiny muted">销售 ${staffOf('sales').length} 人 · 今日剩余客户 ${left}</span>
+    <button class="btn gold" onclick="goNext('sell')">打烊结算 →</button></div></div>`;
+  return h;
+}
+
+function customerHTML(c){
+  const t=c.type;
+  if(c.status!=='pending'){
+    const map={sold:['成交','#ddf5e7','#0b7a4f'],caught:['识破','#fde8e8','#b91c1c'],leave:['离店','#eef4f1','#5d7a6e'],gone:['无货','#eef4f1','#5d7a6e']};
+    const m=map[c.status]||map.leave;
+    return `<div class="deal dim"><div class="deal-top"><div>
+      <div class="deal-title">${t.ic} ${t.name}</div>
+      <div class="deal-sub">${c.msg||''}</div></div>
+      <span class="chip" style="background:${m[1]};color:${m[2]}">${m[0]}</span></div></div>`;
+  }
+  const it=S.inventory.find(x=>x.id===c.itemId);
+  if(!it){return `<div class="deal dim"><div class="deal-title">${t.ic} ${t.name}</div><div class="deal-sub">想要的包已经卖掉了</div></div>`;}
+  const profit=c.bid-it.cost;
+  const b=BMAP[it.brand];
+  const hp=Math.round(clamp(0.28+bestSkill('sales')*0.038+(S.rep-50)/320,0.12,0.88)*100);
+  const knowsFake=it.verified&&it.belief!=='genuine';
+  const risky=it.fake!=='genuine';
+  return `<div class="deal">
+    <div class="deal-top">
+      <div><div class="deal-title">${t.ic} ${t.name} <span class="tiny muted">（预算档次 ${'★'.repeat(t.tier)}）</span></div>
+      <div class="deal-sub">看中了 <b style="color:${b.color}">${it.brand} ${it.model}</b> · ${condOf(it).name}</div></div>
+      <div style="text-align:right"><div class="price">${money(c.bid)}</div><div class="tiny muted">客户出价</div></div>
+    </div>
+    <div class="kv"><span>你的成本</span><b>${money(it.cost)}</b></div>
+    <div class="kv"><span>本单盈亏</span><b class="${profit>=0?'pos':'neg'}">${profit>=0?'+':''}${money(profit)}</b></div>
+    ${knowsFake?`<div class="note warn tiny">⚠️ 你明知道这是假的还要卖。被识破概率 <b>34%</b>，届时退款 + 赔偿 + 声望暴跌。</div>`
+      :(!it.verified&&risky?`<div class="note warn tiny">⚠️ 这个包没鉴定过，万一有问题，有 <b>18%</b> 概率被客户退货索赔。</div>`:'')}
+    ${c.msg?`<div class="note tiny">${c.msg}</div>`:''}
+    <div class="row" style="margin-top:10px">
+      <button class="btn gold" style="flex:1;min-width:110px" onclick="actCustomer(${c.cid},'deal')">✅ 成交 ${money(c.bid)}</button>
+      <button class="btn" style="flex:1;min-width:110px" onclick="actCustomer(${c.cid},'haggle')" ${c.haggled?'disabled':''}>💬 谈价（${hp}%）</button>
+      <button class="btn ghost" onclick="actCustomer(${c.cid},'reject')">拒绝</button>
+    </div>
+  </div>`;
+}
+
+function stageSettle(){
+  const d=S.daily;
+  const gross=d.rev;
+  const out=d.ad+d.wage+d.rent;
+  const net=gross-out;
+  return `<div class="card">
+    <div class="card-h"><span>🧾 第 ${S.day} 天 · 日结账单</span><span class="tag">${S.act>=2?('已垄断 '+S.total.regionWins+'/'+totalRegions()+' 区域'):(S.day<S.maxDay?'还有 '+(S.maxDay-S.day)+' 天':'最后一天')}</span></div>
+    <div class="kv"><span>💰 门店销售回款</span><b class="pos">+${money(gross)}</b></div>
+    ${d.liveRev>0?`<div class="kv"><span>📹 直播专场回款</span><b class="pos">+${money(d.liveRev)}</b></div>`:''}
+    ${d.dumpRev>0?`<div class="kv"><span>🏷️ 包展甩货回款</span><b class="pos">+${money(d.dumpRev)}</b></div>`:''}
+    ${d.refund>0?`<div class="kv"><span>↩️ 直播退货退款 + 处理费</span><b class="neg">-${money(d.refund)}</b></div>`:''}
+    ${d.branchRev>0?`<div class="kv"><span>🏬 分店营收合计</span><b class="pos">+${money(d.branchRev)}</b></div>`:''}
+    ${d.branchCost>0?`<div class="kv"><span>🏬 分店进货/房租/工资</span><b class="neg">-${money(d.branchCost)}</b></div>`:''}
+    <div class="kv"><span>🛒 老店收货采购支出</span><b class="neg">-${money(d.buy)}</b></div>
+    ${d.liveFee>0?`<div class="kv"><span>📹 直播坑位费 / 投流费</span><b class="neg">-${money(d.liveFee)}</b></div>`:''}
+    ${d.dumpFee>0?`<div class="kv"><span>🏷️ 包展展位费</span><b class="neg">-${money(d.dumpFee)}</b></div>`:''}
+    <div class="kv"><span>🔍 鉴定 / 护理费</span><b class="neg">-${money(d.fee)}</b></div>
+    ${d.penalty>0?`<div class="kv"><span>🚨 假货索赔赔偿</span><b class="neg">-${money(d.penalty)}</b></div>`:''}
+    <div class="kv"><span>📱 抖音广告投放</span><b class="neg">-${money(d.ad)}</b></div>
+    <div class="kv"><span>👥 员工工资（${S.staff.length}人）</span><b class="neg">-${money(d.wage)}</b></div>
+    <div class="kv"><span>🏠 店铺租金</span><b class="neg">-${money(d.rent)}</b></div>
+    <div class="hr"></div>
+    <div class="between" style="font-size:15px;font-weight:800">
+      <span>当日净流水（不含库存占用）</span>
+      <span class="${net>=0?'pos':'neg'}">${net>=0?'+':''}${money(net)}</span>
+    </div>
+    <div style="margin-top:12px" class="kv"><span>📦 库存件数 / 估值</span><b>${S.inventory.length} 件 · ${money(S.inventory.reduce((a,it)=>a+itemValue(it),0))}</b></div>
+    <div class="kv"><span>📊 今日成交 / 卖出假货 / 销毁假货</span><b>${d.deals} / ${S.total.fakeSold} / ${S.total.fakeTorched}</b></div>
+    ${S.cash<0?`<div class="note warn">💀 现金已为负数，资金链断裂！</div>`:''}
+    <div class="hr"></div>
+    <button class="btn gold block" style="padding:12px" onclick="nextDay()">${S.cash<0?'💀 宣告破产':((S.act<2&&S.day>=S.maxDay)?'📊 查看最终成绩':'进入第 '+(S.day+1)+' 天 →')}</button>
+  </div>`;
+}
+
+/* ---------- 员工面板 ---------- */
+function renderStaff(){
+  let h=`<div class="card"><div class="card-h"><span>👥 团队</span><span class="tag">薪资 ${money(S.staff.filter(s=>!s.branchId).reduce((a,s)=>a+salaryOf(s),0))}/天</span></div>`;
+  const branchName=uid=>{const b=S.branches.find(x=>x.managerId===uid);return b?regionOf(b.regionId).name:null;};
+  ROLE_ORDER.forEach(role=>{
+    const list=staffOf(role),r=ROLES[role];
+    h+=`<div style="margin-bottom:12px">
+      <div class="between" style="margin-bottom:6px">
+        <span style="font-size:12px;font-weight:800">${r.ic} ${r.name} <span class="tiny muted">×${list.length}</span></span>
+        <button class="btn sm ghost" onclick="hire('${role}')" ${list.length>=3||S.cash<hireCost?'disabled':''}>+ 招聘 ${money(hireCost)}</button>
+      </div>`;
+    if(list.length===0)h+=`<div class="tiny muted" style="padding:6px 0 4px">暂无${r.name}，${r.desc.split(' · ')[0]}相关操作不可用</div>`;
+    list.forEach(s=>{
+      const tc=trainCost(s);
+      h+=`<div class="staff">
+        <div class="av">${r.ic}</div>
+        <div style="flex:1;min-width:0">
+          <div class="between"><span class="nm">${esc(s.name)}</span><span class="tiny gold-t">Lv.${s.skill}</span></div>
+          <div class="rl">日薪 ${money(salaryOf(s))}${s.branchId?` · <span class="gold-t">驻${regionOf(s.branchId).name}</span>`:''}</div>
+          <div class="bar"><i style="width:${s.skill*10}%"></i></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <button class="btn sm" onclick="train(${s.uid})" ${s.skill>=10||S.cash<tc?'disabled':''} title="培训费 ${money(tc)}">培训</button>
+          <button class="btn sm ghost" onclick="fire(${s.uid})">解雇</button>
+        </div>
+      </div>`;
+    });
+    h+=`</div>`;
+  });
+  h+=`<div class="hr"></div><div class="tiny muted">技能越高：货源更多、鉴定更准、护理成功率更高、议价更狠。</div></div>`;
+  return h;
+}
+
+function hire(role){
+  if(S.cash<hireCost)return;
+  if(staffOf(role).length>=3){toast('每个岗位最多 3 人','#dc2626');return;}
+  S.cash-=hireCost;
+  const s=mkStaff(role,rint(1,4));
+  S.staff.push(s);
+  log(`👤 招聘 ${ROLES[role].name} ${s.name}（Lv.${s.skill}），花费 ${money(hireCost)}`,'gold');
+  toast(`招聘成功：${s.name} Lv.${s.skill}`,'#12a06e');
+  render();
+}
+function train(uid){
+  const s=S.staff.find(x=>x.uid===uid);if(!s)return;
+  const c=trainCost(s);
+  if(S.cash<c||s.skill>=10)return;
+  S.cash-=c;s.skill++;
+  log(`📚 ${s.name} 培训完成 → Lv.${s.skill}，花费 ${money(c)}`,'gold');
+  toast(`${s.name} 升至 Lv.${s.skill}`,'#12a06e');
+  render();
+}
+function fire(uid){
+  const s=S.staff.find(x=>x.uid===uid);if(!s)return;
+  if(!confirm(`确定解雇 ${s.name}？`))return;
+  S.staff=S.staff.filter(x=>x.uid!==uid);
+  log(`📤 解雇 ${s.name}`,'warn');
+  render();
+}
+
+/* ---------- 右侧栏 ---------- */
+function renderSide(){
+  return renderAlerts()+renderRival()+renderBranches()+renderInv()+renderDouyin()+renderLog();
+}
+
+/* 对手面板：市占率对比 + 每日一次的反击 */
+function renderRival(){
+  if(S.act>=2){
+    const wins=S.total.regionWins;
+    return `<div class="card" style="border-color:#a9e0c4;background:rgba(18,160,110,.06)">
+      <div class="card-h" style="color:var(--green)"><span>🏆 本区已垄断</span><span class="tag">区域战 ${wins}/5</span></div>
+      <div class="tiny muted">「${S.rival.name}」已经被你挤出本区。去别的区域开分店，把他们都收拾了。</div>
+    </div>`;
+  }
+  const mine=Math.round(S.share),his=Math.round(rivalShare());
+  const mp=Math.round(myPower()),rp=Math.round(S.rival.power);
+  const diff=mp-rp;
+  const trend=diff>=0?`<span class="pos">你领先 ${diff}</span>`:`<span class="neg">落后 ${-diff}</span>`;
+  return `<div class="card" style="border-color:${diff>=0?'#a9e0c4':'#f0b3b3'}">
+    <div class="card-h"><span>⚔️ 区域对手 · ${esc(S.rival.name)}</span>${S.truce>0?`<span class="tag" style="color:var(--green)">停战 ${S.truce} 天</span>`:''}</div>
+    <div class="tiny muted" style="margin-bottom:8px">老板 ${esc(S.rival.boss)} · ${esc(S.rival.name)}。每天都会截你的货、抢你的客人。</div>
+    <!-- 市占率对比 -->
+    <div style="display:flex;height:20px;border-radius:6px;overflow:hidden;border:1px solid var(--line2);margin-bottom:6px">
+      <div style="width:${mine}%;background:linear-gradient(90deg,#0a6b49,#12a06e);display:grid;place-items:center;font-size:11px;font-weight:800;color:#ffffff">${mine}%</div>
+      <div style="width:${his}%;background:linear-gradient(90deg,#b3261e,#dc2626);display:grid;place-items:center;font-size:11px;font-weight:800;color:#ffffff">${his}%</div>
+    </div>
+    <div class="between tiny" style="margin-bottom:8px"><span class="gold-t">🏠 你的店</span><span class="neg">${esc(S.rival.name)}</span></div>
+    <div class="kv"><span>你的竞争力</span><b class="gold-t">${mp}</b></div>
+    <div class="kv"><span>他的实力</span><b class="neg">${rp}</b></div>
+    <div class="kv"><span>当前态势</span><b>${trend}</b></div>
+    ${S.rivalStole>0?`<div class="note warn tiny" style="margin:8px 0">🐍 他今天截走了你 ${S.rivalStole} 条货源</div>`:''}
+    ${S.rivalDiverted>0?`<div class="note warn tiny" style="margin:8px 0">🚶 他今天从你门口拉走了 ${S.rivalDiverted} 位客人</div>`:''}
+    <div class="hr"></div>
+    <div class="tiny muted" style="margin-bottom:6px">今日出手 ${S.competeUsed?'（已用完）':'（1 次）'}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      ${COMPETE_ACTIONS.map(a=>`<button class="btn sm ${a.id==='war'?'red':'gold'} ${S.competeUsed?'ghost':''}"
+        onclick="doCompete('${a.id}')" ${S.competeUsed||S.cash<a.cost?'disabled':''}
+        title="${esc(a.desc)}">${a.ic} ${a.name}<br><span class="tiny" style="opacity:.75">${a.cost?money(a.cost):'免费'}</span></button>`).join('')}
+    </div>
+    <div class="tiny muted" style="margin-top:8px">📢压实力 📢涨声望 · 💰挖他骨干 · 🔥今日让利抢客 · 🤝买 3 天太平</div>
+  </div>`;
+}
+
+/* 分店面板 */
+function renderBranches(){
+  if(S.act<2&&S.branches.length===0)return '';
+  const list=S.branches;
+  const daily=list.reduce((a,b)=>a+branchDaily(b).profit,0);
+  let h=`<div class="card">
+    <div class="card-h"><span>🏬 分店 ${list.length}/${totalRegions()}</span>
+      <span class="tag ${daily>=0?'':'neg'}">${daily>=0?'+':''}${money(daily)}/天</span></div>`;
+  if(S.branches.length>1){
+    const span=Math.round(spanMul()*100);
+    h+=`<div class="tiny muted" style="margin-bottom:8px">管理跨度：${S.branches.length} 家店，单店效率 ${span}%，营销战开销 ×${spanCostMul().toFixed(2)}。店越多越难管。</div>`;
+  }
+  if(list.length===0){
+    h+=`<div class="empty" style="padding:14px"><span class="e">🗺️</span>还没有分店<br><span class="tiny">点下面的按钮看区域地图</span></div>`;
+  }else{
+    h+=list.map(b=>{
+      const r=regionOf(b.regionId),d=branchDaily(b);
+      const mon=d.monopoly;
+      const wc=regionWarCost(b.regionId);
+      return `<div class="inv" style="display:block;${mon?'border-color:#a9e0c4;background:rgba(18,160,110,.07)':''}">
+        <div style="display:flex;gap:9px;align-items:center">
+          <div class="ic">${r.ic}</div>
+          <div style="flex:1;min-width:0">
+            <div class="nm">${r.name} ${mon?'<span class="chip" style="background:#ddf5e7;color:#0b7a4f">垄断 ×2.2</span>':''}</div>
+            <div class="mt">店长 ${d.mgr?esc(d.mgr.name)+' Lv.'+d.mgr.skill:'<span class="neg">缺人（营收腰斩）</span>'}
+              · 日净利 <b class="${d.profit>=0?'pos':'neg'}">${d.profit>=0?'+':''}${money(d.profit)}</b></div>
+            <div class="mt">营收 ${money(d.rev)} · 累计 ${b.lifetime>=0?'+':''}${money(b.lifetime)} · 对手实力 <span class="${mon?'pos':'neg'}">${r.rival.power}</span></div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:7px">
+          ${!mon?`<button class="btn sm gold" style="flex:1" onclick="launchRegionWar('${b.regionId}')" ${S.cash<wc?'disabled':''}>
+             ⚔️ 营销战 ${money(wc)}</button>`:''}
+          <button class="btn sm" onclick="showManagerPick('${b.regionId}')">👤 换店长</button>
+          <button class="btn sm ghost" onclick="closeBranch('${b.regionId}')">关店</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  h+=`<button class="btn block" style="margin-top:6px" onclick="showMap()">🗺️ 区域地图 / 开分店</button></div>`;
+  return h;
+}
+
+/* 选店长 */
+function showManagerPick(regionId){
+  const b=S.branches.find(x=>x.regionId===regionId);
+  if(!b)return;
+  const r=regionOf(regionId);
+  const cands=S.staff.slice().sort((a,b2)=>b2.skill-a.skill);
+  const e=document.getElementById('mgrMask');if(e)e.remove();
+  const m=document.createElement('div');
+  m.className='mask';m.id='mgrMask';
+  m.innerHTML=`<div class="modal" style="max-width:520px">
+    <h2>👤 派谁去 ${esc(r.name)}</h2>
+    <p>店长技能直接决定这家店的营收：技能每 +1，营收约 +7.5%（相对基础）。</p>
+    <div style="margin:16px 0;max-height:52vh;overflow-y:auto">
+      ${cands.map(s=>{
+        const cur=b.managerId===s.uid;
+        const elsewhere=s.branchId&&s.branchId!==regionId?regionOf(s.branchId).name:null;
+        return `<button class="inv" style="width:100%;text-align:left;${cur?'border-color:var(--brand);background:rgba(14,138,95,.08)':''}"
+          onclick="doAssign('${regionId}',${s.uid})">
+          <div class="ic">${ROLES[s.role].ic}</div>
+          <div style="flex:1;min-width:0">
+            <div class="nm">${esc(s.name)} <span class="tiny gold-t">Lv.${s.skill}</span> ${cur?'<span class="chip" style="background:#ddf3e9;color:var(--brand)">现任</span>':''}</div>
+            <div class="mt">${ROLES[s.role].name} · 日薪 ${money(salaryOf(s))}${elsewhere?` · <span class="neg">现驻${elsewhere}（调走会空出那边）</span>`:''}</div>
+          </div>
+        </button>`;
+      }).join('')}
+    </div>
+    <div style="text-align:center">
+      <button class="btn ghost" onclick="document.getElementById('mgrMask').remove()">取消</button>
+    </div>
+  </div>`;
+  document.body.appendChild(m);
+}
+function doAssign(regionId,uid){
+  const e=document.getElementById('mgrMask');if(e)e.remove();
+  assignManager(regionId,uid);
+  toast('店长已就位','#12a06e');
+}
+
+/* 区域地图弹层 */
+function showMap(){
+  const cur=S.branches.map(b=>b.regionId);
+  const owned=cur.length, total=REGIONS.length-1;
+  const allMonopoly=REGIONS.filter(r=>r.rival&&r.rival.power<=0).length;
+  const m=document.createElement('div');
+  m.className='mask';m.id='mapMask';
+  m.innerHTML=`<div class="modal" style="max-width:680px">
+    <h2>🗺️ 区域扩张地图</h2>
+    <p>${S.act<2?'先在本区打败对手，才能出去开店。':'已开门店 '+owned+'/'+total+'　·　完全垄断 '+allMonopoly+'/5'}</p>
+    <div style="margin:16px 0">${REGIONS.map(r=>{
+      const has=cur.includes(r.id);
+      const isHome=r.id==='local';
+      const mon=r.rival&&r.rival.power<=0;
+      const affordable=S.cash>=r.cost;
+      let act;
+      if(isHome)act=`<span class="chip" style="background:#ddf3e9;color:var(--brand)">起家老店</span>`;
+      else if(has)act=`<span class="chip" style="background:#ddf5e7;color:#0b7a4f">${mon?'已垄断':'经营中'}</span>`;
+      else if(S.act<2)act=`<span class="chip" style="background:#eef4f1;color:#5d7a6e">🔒 未解锁</span>`;
+      else act=`<button class="btn sm ${affordable?'gold':''}" onclick="doOpenBranch('${r.id}')" ${affordable?'':'disabled'}>开店 ${money(r.cost)}</button>`;
+      return `<div class="deal" style="margin-bottom:10px">
+        <div class="deal-top">
+          <div><div class="deal-title">${r.ic} ${r.name}</div>
+          <div class="deal-sub">${r.desc} · 购买力 ${'★'.repeat(r.tier)}</div></div>
+          <div style="text-align:right">${act}</div>
+        </div>
+        ${r.rival?`<div class="kv"><span>区域对手</span><b>${esc(r.rival.name)}　实力 <span class="${r.rival.power<=0?'pos':'neg'}">${r.rival.power}</span></b></div>
+        <div class="kv"><span>日营收估算</span><b>${has?money(branchDaily(S.branches.find(b=>b.regionId===r.id)).rev):money(Math.round(r.base*42000*(0.45+6*0.075)*(1+S.rep/170)*(1-r.rival.power/140)))}</b></div>`:''}
+        ${has&&r.rival?`<div class="kv"><span>当前日净利</span><b class="${branchDaily(S.branches.find(b=>b.regionId===r.id)).profit>=0?'pos':'neg'}">${money(branchDaily(S.branches.find(b=>b.regionId===r.id)).profit)}</b></div>`:''}
+      </div>`;
+    }).join('')}</div>
+    <div style="text-align:center"><button class="btn gold" style="padding:11px 34px" onclick="closeMap()">关闭</button></div>
+  </div>`;
+  document.body.appendChild(m);
+}
+function closeMap(){const e=document.getElementById('mapMask');if(e)e.remove();}
+function doOpenBranch(rid){closeMap();openBranch(rid);}
+
+/* 待到账退货预警：这是直播玩法最要命的现金流风险 */
+function renderAlerts(){
+  if(S.pendingReturns.length===0)return '';
+  const total=S.pendingReturns.reduce((a,r)=>a+r.amount+Math.round(r.amount*0.02),0);
+  const danger=total>S.cash;
+  const list=S.pendingReturns.slice().sort((a,b)=>a.dueDay-b.dueDay);
+  return `<div class="card" style="border-color:${danger?'#e6a2a2':'#e6cf94'};background:${danger?'rgba(220,38,38,.06)':'rgba(14,138,95,.06)'}">
+    <div class="card-h" style="color:${danger?'#dc2626':'#0e8a5f'}">
+      <span>↩️ 待到账退货 ${S.pendingReturns.length} 件</span><span class="tag">${money(total)}</span></div>
+    <div class="tiny" style="color:${danger?'#b91c1c':'var(--dim)'};margin-bottom:8px">
+      ${danger?`⚠️ 这些退款总额已超过你手上的现金（${money(S.cash)}），钱要是花光了到日子就得断链。`
+              :'这些货款会在对应日期被退回去，提前留好现金。'}</div>
+    ${list.map(r=>`<div class="kv" style="font-size:11.5px">
+      <span>D${r.dueDay} · ${r.brand} ${r.model}</span><b class="neg">-${money(r.amount)}</b></div>`).join('')}
+  </div>`;
+}
+
+function renderInv(){
+  const val=S.inventory.reduce((a,it)=>a+((it.verified&&it.belief!=='genuine')?it.cost*0.05:marketOf(it)),0);
+  let h=`<div class="card"><div class="card-h"><span>📦 库存 ${S.inventory.length}</span><span class="tag">估值 ${money(val)}</span></div>`;
+  if(S.inventory.length===0)h+=`<div class="empty" style="padding:16px"><span class="e">🗃️</span>暂无库存</div>`;
+  else h+=`<div style="max-height:320px;overflow-y:auto">`+S.inventory.map(it=>{
+    const b=BMAP[it.brand];
+    const knowsFake=it.verified&&it.belief!=='genuine';
+    const mp=knowsFake?0:marketOf(it);
+    const gain=mp-it.cost;
+    const vfee=Math.round(Math.max(500,it.retail*0.015)*Math.pow(1.8,it.verifyCount)/100)*100;
+    return `<div class="inv" style="${knowsFake?'border-color:#f3b6b6;background:rgba(220,38,38,.05)':''}">
+      <div class="ic" style="color:${b.color}">${b.ic}</div>
+      <div style="flex:1;min-width:0">
+        <div class="nm">${it.brand} ${it.model}</div>
+        <div class="mt">${condOf(it).ic}${condOf(it).name} · 成本 ${money(it.cost)}
+          ${it.verified?(knowsFake?`<span class="neg"> · 已鉴定：${trueLabel({fake:it.belief})}</span>`:'<span class="pos"> · 已鉴定：真品</span>'):'<span class="muted"> · 未鉴定</span>'}</div>
+        ${knowsFake
+          ?`<div class="mt neg">鉴定结论是假货 —— 只能销毁，或赌一把混卖</div>`
+          :`<div class="mt">市值 <b style="color:var(--brand)">${money(mp)}</b> <span class="${gain>=0?'pos':'neg'}">(${gain>=0?'+':''}${wshort(gain)})</span></div>`}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        ${knowsFake?`<button class="btn sm red" onclick="actTorch(${it.id})" title="砸掉它，换一点心安">销毁</button>`:''}
+        ${!it.verified?`<button class="btn sm" onclick="actVerify(${it.id})" title="送鉴定师复检，花费 ${money(vfee)}">鉴定</button>`
+          :`<button class="btn sm ghost" onclick="actVerify(${it.id})" title="换个鉴定师复检，花费 ${money(vfee)}">复检</button>`}
+      </div>
+    </div>`;
+  }).join('')+`</div>`;
+  h+=`<div class="tiny muted" style="margin-top:8px">未鉴定的货真伪未知，卖出时有 18% 概率因真伪纠纷被退货索赔。鉴定师也会看走眼。</div>`;
+  h+=`</div>`;
+  return h;
+}
+
+/* 库存内送鉴定：写入的是"你的判断"，不一定是真相 */
+function actVerify(id){
+  const it=S.inventory.find(x=>x.id===id);
+  if(!it)return;
+  const fee=Math.round(Math.max(500,it.retail*0.015)*Math.pow(1.8,it.verifyCount)/100)*100;
+  if(S.cash<fee){toast('现金不足支付鉴定费','#dc2626');return;}
+  S.cash-=fee;S.daily.cost+=fee;S.daily.fee+=fee;S.total.cost+=fee;
+  it.verifyCount++;it.verified=true;
+  const acc=clamp(0.62+bestSkill('appraiser')*0.032,0.62,0.95);
+  it.belief=chance(acc)?it.fake:(it.fake==='genuine'?(chance(0.5)?'superfake':'fake'):'genuine');
+  if(it.belief==='genuine'){
+    log(`🔍 鉴定 ${it.brand} ${it.model}：真品（花费 ${money(fee)}）`,'good');
+    toast('鉴定结论：真品 ✅','#12a06e');
+  }else{
+    log(`🔍 鉴定 ${it.brand} ${it.model}：${it.belief==='superfake'?'高仿':'假货'}！（花费 ${money(fee)}）`,'warn');
+    toast('鉴定结论：'+(it.belief==='superfake'?'高仿':'假货')+' ❌','#dc2626');
+  }
+  render();
+}
+
+function renderDouyin(){
+  const organic=1+Math.floor(S.fans/1100);
+  const lvl=S.fans<1000?['🌱 起步号','#5d7a6e']:S.fans<10000?['📈 小有起色','#2563eb']:S.fans<60000?['🔥 本地热门','#7c3aed']:S.fans<200000?['⭐ 垂类大号','#0e8a5f']:['👑 头部达人','#db2777'];
+  return `<div class="card">
+    <div class="card-h"><span>📱 抖音账号</span><span class="chip" style="background:#eaf4ee;color:${lvl[1]}">${lvl[0]}</span></div>
+    <div class="kv"><span>粉丝数</span><b>${S.fans.toLocaleString('en-US')}</b></div>
+    <div class="kv"><span>自然到店 / 天</span><b>${organic} 人</b></div>
+    <div class="kv"><span>门店接待上限</span><b>${salesCapacity()} 人/天</b></div>
+    <div class="kv"><span>今日广告费</span><b>${money(S.daily.ad)}</b></div>
+    <div class="kv"><span>累计广告投入</span><b>${money(S.total.ads)}</b></div>
+    <div class="kv"><span>爆款视频次数</span><b class="gold-t">${S.total.viral}</b></div>
+    <div class="tiny muted" style="margin-top:8px">粉丝每天自然流失 2%，需要持续投放维持热度。</div>
+  </div>`;
+}
+
+function renderLog(){
+  let h=`<div class="card"><div class="card-h"><span>📜 经营日志</span></div><div class="logbox">`;
+  if(S.log.length===0)h+=`<div class="tiny muted">暂无记录</div>`;
+  h+=S.log.slice(0,30).map(l=>{
+    const c=l.type==='gold'?'var(--brand)':l.type==='warn'?'var(--red)':l.type==='good'?'var(--green)':'var(--dim)';
+    return `<div class="logline"><span class="d">D${l.d}</span><span style="color:${c}">${l.t}</span></div>`;
+  }).join('');
+  h+=`</div></div>`;
+  return h;
+}
+
+/* ---------- 结束 ---------- */
+function renderOver(){
+  const nw=netWorth();
+  const invVal=S.inventory.reduce((a,it)=>a+itemValue(it),0);
+  const t=S.total;
+  const isAct2=S.act>=2;
+  const wins=t.regionWins;
+  const branchVal=S.branches.reduce((a,b)=>a+branchValue(b),0);
+  const r=isAct2
+    ? (wins>=5?(nw+branchVal>=13000000?{r:'连锁帝国 · 二奢之王',c:'#0e8a5f',ic:'👑',d:'五个区域全部垄断，母公司账面也漂亮得不像话。这座城市的高端二手流通，你说了算。'}
+                                  :{r:'区域级垄断',c:'#12a06e',ic:'🏆',d:'五个区域全拿下了，只是账面还没跟上野心。'})
+      :wins>=3?{r:'区域级连锁',c:'#7c3aed',ic:'🤑',d:'版图已经铺开，剩下的地头蛇只是时间问题。'}
+      :wins>=1?{r:'扩张初见成效',c:'#12a06e',ic:'😎',d:'第一块外地招牌立住了，但离垄断还差得远。'}
+      :{r:'扩张受挫',c:'#7d95a8',ic:'😕',d:'分店开了，但地头蛇没打下来，利润被压得很薄。'})
+    : rankOf(nw);
+  $('app').innerHTML=`
+  <div class="title-wrap" style="padding-top:4vh">
+    <div style="font-size:64px;line-height:1">${r.ic}</div>
+    <div class="big-title" style="font-size:clamp(30px,7vw,52px)">${r.r}</div>
+    <p style="color:var(--dim);max-width:520px;margin:16px auto 0">${r.d}</p>
+
+    <div class="card" style="max-width:620px;margin:28px auto 0;text-align:left">
+      <div class="card-h"><span>📊 ${isAct2?('第 '+S.day+' 天 · 连锁经营总账'):'30 天经营总账'}</span></div>
+      <div class="kv"><span>期末现金</span><b>${money(S.cash)}</b></div>
+      <div class="kv"><span>老店库存估值（${S.inventory.length} 件）</span><b>${money(invVal)}</b></div>
+      ${S.branches.length?`<div class="kv"><span>分店资产（${S.branches.length} 家）</span><b>${money(branchVal)}</b></div>`:''}
+      <div class="kv"><span>净资产</span><b class="gold-t" style="font-size:16px">${money(nw+branchVal)}</b></div>
+      <div class="hr"></div>
+      <div class="kv"><span>累计销售额</span><b class="pos">${money(t.rev)}</b></div>
+      <div class="kv"><span>累计支出（收货+广告+工资+租金+竞争）</span><b class="neg">${money(t.cost)}</b></div>
+      <div class="kv"><span>成交单数</span><b>${t.deals} 单</b></div>
+      <div class="kv"><span>广告总投入 / 爆款次数</span><b>${money(t.ads)} / ${t.viral} 次</b></div>
+      <div class="kv"><span>抖音粉丝</span><b>${S.fans.toLocaleString('en-US')}</b></div>
+      <div class="kv"><span>门店声望</span><b>${S.rep.toFixed(1)} / 100</b></div>
+      <div class="hr"></div>
+      <div class="kv"><span>⚔️ 本区最终市占率</span><b class="${S.share>50?'pos':'neg'}">${Math.round(S.share)}%</b></div>
+      <div class="kv"><span>　区域对手「${esc(S.rival.name)}」</span><b>${S.share>50?'已击败 ✅':'仍占上风 ❌'}</b></div>
+      <div class="kv"><span>🏬 开出分店 / 垄断区域</span><b>${S.branches.length} 家 / <span class="${wins>0?'pos':''}">${wins} 个</span></b></div>
+      <div class="kv"><span>　分店累计营收</span><b class="pos">${money(t.branchRev)}</b></div>
+      <div class="kv"><span>　竞争战总投入</span><b class="neg">${money(t.warSpend)}</b></div>
+      <div class="hr"></div>
+      <div class="kv"><span>📹 直播专场回款 / 坑位费</span><b><span class="pos">${money(t.liveRev)}</span> / <span class="neg">${money(t.liveFee)}</span></b></div>
+      <div class="kv"><span>　直播成交 / 被退货</span><b>${t.liveSold} 件 / <span class="neg">${t.liveReturned} 件</span>${t.liveSold?`（退货率 ${Math.round(t.liveReturned/t.liveSold*100)}%）`:''}</b></div>
+      <div class="kv"><span>　退货退款总额</span><b class="neg">${money(t.refund)}</b></div>
+      <div class="kv"><span>🏷️ 包展扫货投入 / 甩货回款</span><b><span class="neg">${money(t.fairBuy)}</span> / <span class="pos">${money(t.dumpRev)}</span></b></div>
+      <div class="hr"></div>
+      <div class="kv"><span>💀 假货被识破</span><b class="neg">${t.fakeCaught} 次</b></div>
+      <div class="kv"><span>🕳️ 假货成功混卖</span><b class="${t.fakeSold>0?'neg':''}">${t.fakeSold} 次</b></div>
+      <div class="kv"><span>🔥 主动销毁假货</span><b class="pos">${t.fakeTorched} 次</b></div>
+      ${t.fakeSold>t.fakeTorched?`<div class="note warn">你的账本很漂亮，但有些钱赚得不干净 —— 圈子里已经有人在传了。</div>`:''}
+      ${t.fakeTorched>0&&t.fakeSold===0?`<div class="note good">宁可亏钱也不卖假货，这份口碑比什么都值钱。</div>`:''}
+    </div>
+
+    <div style="margin:28px 0 10px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <button class="btn gold" style="padding:14px 44px;font-size:15px" onclick="startGame()">再 来 一 局</button>
+    </div>
+    <div class="brandmark-foot">二奢模拟器 · LUXURY RESALE SIMULATOR</div>
+  </div>`;
+}
+
+/* ---------------- 启动 ---------------- */
+renderTitle();
+window.startGame=startGame;window.showHelp=showHelp;window.enterPhase=enterPhase;
+window.actOffer=actOffer;window.actCare=actCare;window.pickAd=pickAd;window.runAd=runAd;
+window.actCustomer=actCustomer;window.actTorch=actTorch;window.nextDay=nextDay;
+window.actVerify=actVerify;window.hire=hire;window.train=train;window.fire=fire;
+window.goNext=goNext;window.actFairBuy=actFairBuy;window.payBooth=payBooth;
+window.actFairDump=actFairDump;window.actFairDumpAll=actFairDumpAll;
+window.setLiveTier=setLiveTier;window.toggleLivePick=toggleLivePick;window.startLive=startLive;
+window.showMap=showMap;window.closeMap=closeMap;window.doOpenBranch=doOpenBranch;
+window.doCompete=doCompete;window.launchRegionWar=launchRegionWar;window.assignManager=assignManager;
+window.closeBranch=closeBranch;window.startAct2=startAct2;window.forceEnd=forceEnd;
+window.openBranch=openBranch;window.myPower=myPower;window.RMAP=RMAP;
+window.showManagerPick=showManagerPick;window.doAssign=doAssign;
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,11 @@
+# 临时测试脚本（我调试数值平衡时生成的，不参与部署）
+_*.js
+
+# 系统文件
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# 编辑器
+.vscode/
+.idea/

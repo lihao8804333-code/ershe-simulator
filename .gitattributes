@@ -1,0 +1,4 @@
+# 统一用 LF 换行。
+# 不加这个的话，Windows 上 checkout 会把行尾改成 CRLF，
+# 之后源文件和发布副本的哈希就可能对不上，白折腾。
+* text=auto eol=lf
