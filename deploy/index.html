@@ -222,32 +222,32 @@ const CONDITIONS=[
   {name:'99新',   mul:1.00,w:18,ic:'💎'},
   {name:'95新',   mul:0.92,w:30,ic:'🔹'},
   {name:'9成新',  mul:0.82,w:26,ic:'🔸'},
-  {name:'8成新',  mul:0.70,w:14,ic:'🧩'},
-  {name:'7成新',  mul:0.55,w:6, ic:'🩹'}
+  {name:'8成新',  mul:0.70,w:14,ic:'🔷'},
+  {name:'7成新',  mul:0.55,w:6, ic:'🔻'}
 ];
 
 const BRANDS=[
- {name:'爱马仕',en:'Hermès',tier:5,weight:3,color:'#d97706',ic:'🧡',firm:1.06,sell:[1.00,1.35],models:[
+ {name:'爱马仕',en:'Hermès',tier:5,weight:3,color:'#d97706',ic:'❤️',firm:1.06,sell:[1.00,1.35],models:[
    ['Birkin 25',128000],['Kelly 28',118000],['Constance 19',82000],['Lindy 26',56000],['Picotin 18',25000],['Evelyne III',22000]]},
  {name:'香奈儿',en:'Chanel',tier:5,weight:10,color:'#334155',ic:'🖤',firm:1.05,sell:[0.84,1.08],models:[
    ['Classic Flap 中号',89000],['2.55 中号',84000],['CF 小号',78000],['19 Bag',64000],['Gabrielle',38000],['WOC 链条包',27000]]},
- {name:'路易威登',en:'Louis Vuitton',tier:4,weight:20,color:'#92400e',ic:'🟤',firm:1.00,sell:[0.70,0.90],models:[
+ {name:'路易威登',en:'Louis Vuitton',tier:4,weight:20,color:'#92400e',ic:'👜',firm:1.00,sell:[0.70,0.90],models:[
    ['Neverfull MM',15500],['Speedy 20',14500],['Capucines BB',45000],['Pochette Métis',20500],['Alma BB',17500],['Dauphine 达芙妮',26000]]},
  {name:'迪奥',en:'Dior',tier:4,weight:10,color:'#2563eb',ic:'🔵',firm:1.02,sell:[0.62,0.84],models:[
    ['Lady Dior 中号',48000],['蒙田 30',34000],['Saddle 马鞍',32000],['Book Tote 中号',30000],['Caro',28000]]},
  {name:'思琳',en:'Celine',tier:3,weight:8,color:'#78716c',ic:'⚪',firm:0.99,sell:[0.56,0.76],models:[
    ['Classic Box',29000],['Triomphe 中号',27000],['Belt Bag 鲶鱼包',19000],['Luggage 笑脸包',16500]]},
- {name:'罗意威',en:'Loewe',tier:3,weight:6,color:'#ca8a04',ic:'🟡',firm:0.98,sell:[0.54,0.73],models:[
+ {name:'罗意威',en:'Loewe',tier:3,weight:6,color:'#ca8a04',ic:'💛',firm:0.98,sell:[0.54,0.73],models:[
    ['Puzzle 中号',23000],['Hammock',21000],['Flamenco',20000],['Gate',19000]]},
  {name:'圣罗兰',en:'Saint Laurent',tier:3,weight:8,color:'#e11d48',ic:'🌸',firm:0.97,sell:[0.50,0.70],models:[
    ['Envelope 中号',21000],['Loulou 中号',20000],['Sac de Jour',24000],['Kate 链条包',16000]]},
- {name:'古驰',en:'Gucci',tier:3,weight:10,color:'#16a34a',ic:'🟢',firm:0.98,sell:[0.48,0.68],models:[
+ {name:'古驰',en:'Gucci',tier:3,weight:10,color:'#16a34a',ic:'💚',firm:0.98,sell:[0.48,0.68],models:[
    ['Dionysus 酒神中号',23000],['GG Marmont 中号',19000],['Jackie 1961',21000],['Ophidia',14000]]},
- {name:'普拉达',en:'Prada',tier:3,weight:7,color:'#7c3aed',ic:'🟣',firm:0.99,sell:[0.50,0.68],models:[
+ {name:'普拉达',en:'Prada',tier:3,weight:7,color:'#7c3aed',ic:'💜',firm:0.99,sell:[0.50,0.68],models:[
    ['Galleria 中号',26000],['Re-Edition 2005',12000],['Cleo',19000],['尼龙双肩包',11000]]},
- {name:'芬迪',en:'Fendi',tier:3,weight:6,color:'#b45309',ic:'🟠',firm:1.00,sell:[0.50,0.68],models:[
+ {name:'芬迪',en:'Fendi',tier:3,weight:6,color:'#b45309',ic:'🔶',firm:1.00,sell:[0.50,0.68],models:[
    ['Baguette 法棍中号',28000],['Peekaboo 中号',42000],['Sunshine 托特',22000]]},
- {name:'巴宝莉',en:'Burberry',tier:2,weight:5,color:'#92400e',ic:'🧥',firm:0.95,sell:[0.36,0.52],models:[
+ {name:'巴宝莉',en:'Burberry',tier:2,weight:5,color:'#92400e',ic:'👔',firm:0.95,sell:[0.36,0.52],models:[
    ['格纹托特包',13000],['TB 包',16000],['Lola',14000]]},
  {name:'蔻驰',en:'Coach',tier:1,weight:7,color:'#64748b',ic:'👝',firm:0.92,sell:[0.26,0.42],models:[
    ['Tabby 26',4500],['山茶花系列',3800],['Rogue',6800],['大号托特',3200]]}
@@ -257,7 +257,7 @@ const BMAP={};BRANDS.forEach(b=>BMAP[b.name]=b);
 const ROLES={
   buyer:    {name:'回收师',ic:'🎒',desc:'带回货源 · 初判真伪 · 压价谈判'},
   appraiser:{name:'鉴定师',ic:'🔍',desc:'专业鉴定 · 准确率随技能提升'},
-  care:     {name:'护理师',ic:'🧴',desc:'翻新护理 · 提升品相与售价'},
+  care:     {name:'护理师',ic:'💧',desc:'翻新护理 · 提升品相与售价'},
   sales:    {name:'销售',  ic:'💼',desc:'接待客户 · 提升议价上限'}
 };
 const ROLE_ORDER=['buyer','appraiser','care','sales'];
@@ -269,7 +269,7 @@ const NAMES=['王雪梅','李国栋','张雨欣','刘志强','陈美琳','杨浩
 const SELLER_TYPES=[
   {name:'着急出手',ic:'🏃',haggle:0.22,cut:-0.06,price:0.94,w:3,line:'家里急用钱，今天就要出手。'},
   {name:'普通卖家',ic:'🙂',haggle:0.00,cut: 0.00,price:1.00,w:4,line:'闲置出掉，价格好商量。'},
-  {name:'精明商家',ic:'🧐',haggle:-0.25,cut:0.07,price:1.07,w:2,line:'同行收货，行情价我都清楚。'}
+  {name:'精明商家',ic:'🤔',haggle:-0.25,cut:0.07,price:1.07,w:2,line:'同行收货，行情价我都清楚。'}
 ];
 
 const CUSTOMER_TYPES=[
@@ -277,7 +277,7 @@ const CUSTOMER_TYPES=[
   {name:'上班族',  ic:'👩‍💼',bid:[0.82,1.02],w:()=>22,tier:2},
   {name:'中产太太',ic:'💃',bid:[0.90,1.10],w:()=>12+S.rep*0.22,tier:3},
   {name:'企业家',  ic:'🕴️',bid:[0.98,1.18],w:()=>2+S.rep*0.16+S.fans/2600,tier:4},
-  {name:'收藏玩家',ic:'🧐',bid:[1.05,1.35],w:()=>1+S.rep*0.12+S.fans/3800,tier:5}
+  {name:'收藏玩家',ic:'🤔',bid:[1.05,1.35],w:()=>1+S.rep*0.12+S.fans/3800,tier:5}
 ];
 
 const EVENTS=[
@@ -961,9 +961,9 @@ function startDay(){
 function phaseOrder(){
   const a=[['collect','收货','🎒']];
   if(S.fairOpen)a.push(['fair','包展','🏷️']);
-  a.push(['care','护理','🧴'],['ad','投流','📱']);
+  a.push(['care','护理','💧'],['ad','投流','📱']);
   if(S.liveOpen)a.push(['live','直播','📹']);
-  a.push(['sell','卖货','💼'],['settle','结算','🧾']);
+  a.push(['sell','卖货','💼'],['settle','结算','📄']);
   return a;
 }
 function nextPhase(from){
@@ -1053,14 +1053,14 @@ function actCare(id){
   if(chance(p)){
     if(it.cond>0){it.cond--;}
     else{it.sellBase=Math.round(it.sellBase*1.05);}
-    log(`🧴 ${it.brand} ${it.model} 护理成功，品相提升至 ${condOf(it).name}`,'gold');
+    log(`💧 ${it.brand} ${it.model} 护理成功，品相提升至 ${condOf(it).name}`,'gold');
     toast('护理成功 → '+condOf(it).name,'#12a06e');
   }else if(chance(0.3)){
     it.cond=clamp(it.cond+1,0,5);
-    log(`🧴 ${it.brand} ${it.model} 护理翻车，品相受损`,'warn');
+    log(`💧 ${it.brand} ${it.model} 护理翻车，品相受损`,'warn');
     toast('护理翻车！品相受损','#dc2626');
   }else{
-    log(`🧴 ${it.brand} ${it.model} 护理效果一般，品相未变`,'');
+    log(`💧 ${it.brand} ${it.model} 护理效果一般，品相未变`,'');
     toast('效果一般，品相未变','#5d7a6e');
   }
   render();
@@ -1278,7 +1278,7 @@ function netWorth(){
   return S.cash+S.inventory.reduce((a,it)=>a+itemValue(it),0);
 }
 function rankOf(nw){
-  if(nw<650000)return{r:'勉强糊口',c:'#5d7a6e',ic:'🥲',d:'这一年白忙活了，房租都差点交不上。二奢这行，光有热情不够。'};
+  if(nw<650000)return{r:'勉强糊口',c:'#5d7a6e',ic:'😅',d:'这一年白忙活了，房租都差点交不上。二奢这行，光有热情不够。'};
   if(nw<1100000)return{r:'小有成就',c:'#2563eb',ic:'🙂',d:'在圈子里站稳了脚跟，账上也有点余粮，明年继续。'};
   if(nw<1800000)return{r:'二奢新贵',c:'#12a06e',ic:'😎',d:'同行开始打听你的拿货渠道和投流打法了。'};
   if(nw<2600000)return{r:'行业大佬',c:'#7c3aed',ic:'🤑',d:'本地二奢圈，没人不知道你的名号，你的一句话就是行情。'};
@@ -1385,7 +1385,7 @@ function renderTitle(){
     <div class="feat">
       <div><div class="fi">🎒</div><div class="ft">回收师</div><div class="fd">上门收货，初判真伪，帮你压价砍到卖家肉疼</div></div>
       <div><div class="fi">🔍</div><div class="ft">鉴定师</div><div class="fd">一次鉴定费换一个真相，但高手也会看走眼</div></div>
-      <div><div class="fi">🧴</div><div class="ft">护理师</div><div class="fd">翻新提品相，售价直接上一个台阶</div></div>
+      <div><div class="fi">💧</div><div class="ft">护理师</div><div class="fd">翻新提品相，售价直接上一个台阶</div></div>
       <div><div class="fi">💼</div><div class="ft">销售</div><div class="fd">接待客户，谈价加成，决定你能接多少客</div></div>
     </div>
     <div class="feat" style="margin-top:0">
@@ -1417,7 +1417,7 @@ const TUTOR_SLIDES=[
    body:'<p>你盘下一间 40 平的二手奢侈品店，手里有 <b class="gold-t">¥500,000</b>。</p>'+
         '<p>经营 <b>30 天</b>，最后按净资产评级：</p>'+
         '<div style="display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 4px">'+
-          '<span class="chip" style="background:#eef4f1;color:#5d7a6e">🥲 勉强糊口</span>'+
+          '<span class="chip" style="background:#eef4f1;color:#5d7a6e">😅 勉强糊口</span>'+
           '<span class="chip" style="background:#eef4f1;color:#2563eb">🙂 小有成就</span>'+
           '<span class="chip" style="background:#ddf5e7;color:#0b7a4f">😎 二奢新贵</span>'+
           '<span class="chip" style="background:#f3e8ff;color:#7c3aed">🤑 行业大佬</span>'+
@@ -1613,7 +1613,7 @@ function showHelp(){
       <li>所以<b class="gold-t">不砍价直接收 = 亏本</b>。实测：从不压价的玩法平均会亏到破产。</li>
       <li><b>压价</b>成功后价格会砍到市场价的 <b>55%~85%</b>，这中间的差价才是你的毛利。</li>
       <li>砍得多深取决于 <b>回收师技能</b>：技能 1 平均砍到市价 80%（毛利约 +2,900），技能 10 能砍到 64%（毛利约 +9,100）。<b>回收师是店里最值钱的岗位。</b></li>
-      <li>卖家分三种：🏃 着急出手（好砍、成功率 +22%）、🙂 普通卖家、🧐 精明商家（难砍、折扣少 7%）。</li>
+      <li>卖家分三种：🏃 着急出手（好砍、成功率 +22%）、🙂 普通卖家、🤔 精明商家（难砍、折扣少 7%）。</li>
       <li>品牌也有<b>议价硬度</b>：爱马仕最硬（+6%），蔻驰最好砍（-8%）。卡片上会直接标出「硬 / 正常 / 好砍」。</li>
       <li>压价失败有 55% 概率卖家直接拎包走人，这单就没了。</li>
       <li>不砍价也不是绝对没机会：如果能卖给「收藏玩家」（出价最高到市价 135%），或者收货后护理提品相，也有可能扳回来 —— 但那是小概率。</li>
@@ -1752,9 +1752,9 @@ function lotHTML(l){
   const cond=CONDITIONS[l.cond];
   const mp=Math.round(l.sellBase*cond.mul);
   const margin=mp-l.ask;
-  const hm={real:['🟢 同行说没问题','#ddf5e7','#0b7a4f'],
+  const hm={real:['💚 同行说没问题','#ddf5e7','#0b7a4f'],
             fake:['🔴 有人嘀咕是假的','#fde8e8','#b91c1c'],
-            unsure:['🟡 说不好','#fdf1d6','#0e8a5f']}[l.hint]||['🟡 说不好','#fdf1d6','#0e8a5f'];
+            unsure:['💛 说不好','#fdf1d6','#0e8a5f']}[l.hint]||['💛 说不好','#fdf1d6','#0e8a5f'];
   const full=fairBoughtCount()>=fairCap();
   return `<div class="deal">
     <div class="deal-top">
@@ -1888,7 +1888,7 @@ function offerHTML(o){
   const cutMid=clamp(0.80-bestSkill('buyer')*0.020+o.seller.cut,0.55,0.93);
   const afterMid=Math.round(o.ask*cutMid);
   const afterMargin=mp-afterMid;
-  const hintMap={real:['🟢 看真','#ddf5e7','#0b7a4f'],fake:['🔴 存疑/看假','#fde8e8','#b91c1c'],unsure:['🟡 拿不准','#fdf1d6','#0e8a5f']};
+  const hintMap={real:['💚 看真','#ddf5e7','#0b7a4f'],fake:['🔴 存疑/看假','#fde8e8','#b91c1c'],unsure:['💛 拿不准','#fdf1d6','#0e8a5f']};
   const hm=hintMap[o.hint];
 
   let body='';
@@ -1934,7 +1934,7 @@ function offerHTML(o){
 function stageCare(){
   const cap=careCapacity(),used=S.daily.care;
   let h=`<div class="card">
-    <div class="card-h"><span>🧴 护理工坊</span><span class="tag">今日名额 ${used}/${cap}</span></div>
+    <div class="card-h"><span>💧 护理工坊</span><span class="tag">今日名额 ${used}/${cap}</span></div>
     ${tut('care','💡 护理能 <b>提升品相</b>，品相越好卖得越贵。每个包只能护理一次，名额由护理师人数决定。')}
     <div class="note tiny">护理能提升品相（售价上涨约 8%~12%）。护理费为公价的 2%，每个包只能护理一次。</div>`;
   if(staffOf('care').length===0)h+=`<div class="empty"><span class="e">🚫</span>没有护理师，无法护理</div>`;
@@ -1952,7 +1952,7 @@ function stageCare(){
         <div style="text-align:right"><div class="price">${money(marketOf(it))}</div><div class="tiny muted">当前市值</div></div>
       </div>
       <button class="btn block ${full?'ghost':'gold'}" onclick="actCare(${it.id})" ${full?'disabled':''}>
-        ${full?'今日名额已用完':`🧴 护理（${money(fee)}，成功率 ${p}%）`}</button>
+        ${full?'今日名额已用完':`💧 护理（${money(fee)}，成功率 ${p}%）`}</button>
     </div>`;
   }).join('');
   h+=`<div class="hr"></div><div class="between">
@@ -2046,7 +2046,7 @@ function stageSettle(){
   const out=d.ad+d.wage+d.rent;
   const net=gross-out;
   return `${tut('settle','💡 每天要扣 <b>工资和房租</b>。现金一旦变成负数，就直接 <b>破产出局</b>。')}<div class="card">
-    <div class="card-h"><span>🧾 第 ${S.day} 天 · 日结账单</span><span class="tag">${S.act>=2?('已垄断 '+S.total.regionWins+'/'+totalRegions()+' 区域'):(S.day<S.maxDay?'还有 '+(S.maxDay-S.day)+' 天':'最后一天')}</span></div>
+    <div class="card-h"><span>📄 第 ${S.day} 天 · 日结账单</span><span class="tag">${S.act>=2?('已垄断 '+S.total.regionWins+'/'+totalRegions()+' 区域'):(S.day<S.maxDay?'还有 '+(S.maxDay-S.day)+' 天':'最后一天')}</span></div>
     <div class="kv"><span>💰 门店销售回款</span><b class="pos">+${money(gross)}</b></div>
     ${d.liveRev>0?`<div class="kv"><span>📹 直播专场回款</span><b class="pos">+${money(d.liveRev)}</b></div>`:''}
     ${d.dumpRev>0?`<div class="kv"><span>🏷️ 包展甩货回款</span><b class="pos">+${money(d.dumpRev)}</b></div>`:''}
@@ -2553,7 +2553,7 @@ function emojiWorks(){
     const x=t.getContext('2d');
     x.textBaseline='top';x.fillStyle='#000';
     x.font='24px '+EMOJI;
-    x.fillText('\u{1F972}',2,2);                       // 🥲
+    x.fillText('\u{1F972}',2,2);                       // 😅
     const a=x.getImageData(0,0,32,32).data;
     x.clearRect(0,0,32,32);
     x.fillText('\u{10FFFD}',2,2);                      // 私有区码位，必定无字形
