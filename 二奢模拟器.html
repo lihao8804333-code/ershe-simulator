@@ -322,6 +322,50 @@ const COMPETE_ACTIONS=[
   {id:'deal', name:'商务合作', ic:'🤝',cost:40000,desc:'谈停战 3 天，他不再截胡和分流你的客人'}
 ];
 
+/* ============================================================
+   推广配置 —— 改这里就行，不用动其它代码
+   ============================================================ */
+const PROMO={
+  /* 你的微信/企微二维码。
+     三种填法：
+       1) 留空 ''                —— 战报图不画二维码（先跑起来看看效果）
+       2) 相对路径 './qr.png'    —— 把 qr.png 放进 deploy 文件夹一起上传（推荐，最省事）
+       3) data:image/png;base64,xxxx —— 把二维码转成 base64 内嵌，保持单文件
+     ⚠️ 不要填外部网址，微信里可能加载不出来 */
+  qr:'',
+
+  /* 二维码旁边的说明 */
+  qrLabel:'扫码 · 免费估价',
+
+  /* 结算页的转化卡片 */
+  ctaTitle:'你的包，现在值多少钱？',
+  ctaDesc:'专业估价师 1 对 1 免费估价<br>上门回收 · 当场打款 · 全国包邮',
+  ctaBtn:'💬 免费估价',
+
+  /* 点击按钮后弹出的提示（微信里不能直接跳转加好友，所以引导扫码） */
+  ctaTip:'长按识别下方二维码，添加估价师微信',
+
+  /* 战报图底部的引导语 —— 这句决定了别人为什么要点进来 */
+  hookLine:'我 30 天做到 {rank}，净资产 {net}\n你的包值多少？来测一测',
+
+  /* 可选：埋点上报地址。留空则只在控制台打印，不发请求 */
+  trackerUrl:''
+};
+
+/* 埋点：默认只打 console，填了 trackerUrl 就上报。
+   不会采集任何个人信息，只有事件名和几个匿名数值。 */
+function track(event,data){
+  try{
+    const payload=Object.assign({event,ts:Date.now()},data||{});
+    if(PROMO.trackerUrl&&navigator&&navigator.sendBeacon){
+      navigator.sendBeacon(PROMO.trackerUrl,JSON.stringify(payload));
+    } else if(PROMO.trackerUrl){
+      fetch(PROMO.trackerUrl,{method:'POST',body:JSON.stringify(payload),keepalive:true}).catch(function(){});
+    }
+    if(!PROMO.trackerUrl&&window.console)console.log('[track]',event,data||'');
+  }catch(e){}
+}
+
 /* ---------------- 游戏状态 ---------------- */
 let S=null;
 
@@ -1198,7 +1242,7 @@ function nextDay(){
   S.day++;
   if(S.act===1&&S.day>S.maxDay){
     if(checkAct1()){
-      S.act=2;S.maxDay=Infinity;S.phase='act2';render();return;
+      S.act=2;S.maxDay=Infinity;S.phase='act2';track('act1_cleared',{net:Math.round(netWorth()),share:Math.round(S.share)});render();return;
     }
     S.over=true;S.phase='over';render();return;
   }
@@ -1322,7 +1366,7 @@ function renderTitle(){
   </div>`;
 }
 
-function startGame(){try{localStorage.removeItem('ershe_save');}catch(e){}newGame();}
+function startGame(){try{localStorage.removeItem('ershe_save');}catch(e){}track('game_start');newGame();}
 function showHelp(){
   if(document.getElementById('helpMask'))return;
   const m=document.createElement('div');
@@ -2131,8 +2175,197 @@ function renderLog(){
   return h;
 }
 
+/* ============================================================
+   分享战报图 —— 推广的核心：让玩家愿意转发，且转发出去带着你的二维码
+   ============================================================ */
+const FONT='"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif';
+
+function roundRect(c,x,y,w,h,r){
+  c.beginPath();
+  c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);
+  c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();
+}
+
+/* 把当前战局画成一张 750x1180 的图（3:4.7，适合朋友圈/小红书） */
+function buildShareCard(){
+  const W=750,H=1180;
+  const cv=document.createElement('canvas');
+  cv.width=W;cv.height=H;
+  const c=cv.getContext('2d');
+
+  const R=curRank();
+  const nw=netWorth();
+  const t=S.total;
+
+  // 背景
+  c.fillStyle='#eef6f1';c.fillRect(0,0,W,H);
+
+  // 顶部绿色渐变块
+  const g=c.createLinearGradient(0,0,W,420);
+  g.addColorStop(0,'#12a06e');g.addColorStop(1,'#0a6b49');
+  c.fillStyle=g;
+  roundRect(c,36,36,W-72,430,28);c.fill();
+
+  // 品牌名
+  c.fillStyle='rgba(255,255,255,.82)';
+  c.font='600 26px '+FONT;
+  c.textAlign='center';
+  c.fillText('二 奢 模 拟 器',W/2,110);
+
+  // 评级
+  c.font='88px '+FONT;
+  c.fillText(R.ic,W/2,225);
+  c.fillStyle='#ffffff';
+  c.font='900 76px '+FONT;
+  c.fillText(R.r,W/2,320);
+
+  // 评级副文案
+  c.fillStyle='rgba(255,255,255,.88)';
+  c.font='500 24px '+FONT;
+  wrapText(c,R.d,W/2,368,W-160,36,2);
+
+  // 白色数据卡
+  c.fillStyle='#ffffff';
+  roundRect(c,36,400,W-72,340,28);
+  c.shadowColor='rgba(16,60,42,.10)';c.shadowBlur=24;c.shadowOffsetY=8;
+  c.fill();
+  c.shadowColor='transparent';c.shadowBlur=0;c.shadowOffsetY=0;
+
+  // 2x2 数据格
+  const stats=[
+    ['净资产',   money(nw)],
+    ['成交单数', t.deals+' 单'],
+    ['抖音粉丝', wshort(S.fans)],
+    [S.act>=2?'垄断区域':'本区市占', S.act>=2?(t.regionWins+'/5'):(Math.round(S.share)+'%')]
+  ];
+  stats.forEach(function(s,i){
+    const cx=36+((W-72)/4)*(i*2+1), cy=i<2?490:625;
+    c.textAlign='center';
+    c.fillStyle='#5d7a6e';c.font='500 24px '+FONT;
+    c.fillText(s[0],cx,cy);
+    c.fillStyle=i===0?'#0e8a5f':'#12261e';
+    c.font='900 44px '+FONT;
+    c.fillText(s[1],cx,cy+52);
+  });
+  // 分隔线
+  c.strokeStyle='#e2ede7';c.lineWidth=2;
+  c.beginPath();c.moveTo(W/2,460);c.lineTo(W/2,700);
+  c.moveTo(70,565);c.lineTo(W-70,565);c.stroke();
+
+  // 引导语
+  c.textAlign='center';
+  c.fillStyle='#12261e';
+  c.font='700 34px '+FONT;
+  const hook=PROMO.hookLine
+    .replace('{rank}',R.r).replace('{net}',money(nw));
+  wrapText(c,hook.split('\n')[0],W/2,800,W-140,44,1);
+  c.fillStyle='#5d7a6e';
+  c.font='500 28px '+FONT;
+  const l2=hook.split('\n')[1]||'';
+  if(l2)c.fillText(l2,W/2,850);
+
+  // 底部二维码区
+  c.fillStyle='#ffffff';
+  roundRect(c,36,890,W-72,250,28);c.fill();
+
+  const qx=80,qy=928,qs=174;
+  c.fillStyle='#f6fbf8';
+  roundRect(c,qx,qy,qs,qs,16);c.fill();
+
+  function drawLabel(){
+    c.textAlign='left';
+    c.fillStyle='#0e8a5f';
+    c.font='900 40px '+FONT;
+    c.fillText(PROMO.qrLabel,qx+qs+40,qy+72);
+    c.fillStyle='#5d7a6e';
+    c.font='500 25px '+FONT;
+    c.fillText('专业估价 · 上门回收 · 当场打款',qx+qs+40,qy+118);
+  }
+
+  if(PROMO.qr){
+    // 二维码可能是 data: 也可能是相对路径，都要等图加载完再导出
+    return new Promise(function(resolve){
+      const img=new Image();
+      img.crossOrigin='anonymous';
+      img.onload=function(){
+        c.drawImage(img,qx,qy,qs,qs);
+        drawLabel();
+        resolve(cv.toDataURL('image/png'));
+      };
+      img.onerror=function(){
+        c.fillStyle='#e2ede7';c.fillRect(qx,qy,qs,qs);
+        c.fillStyle='#93a89f';c.font='500 22px '+FONT;c.textAlign='center';
+        c.fillText('二维码加载失败',qx+qs/2,qy+qs/2);
+        drawLabel();
+        resolve(cv.toDataURL('image/png'));
+      };
+      img.src=PROMO.qr;
+    });
+  }else{
+    // 没配二维码就画个占位框，方便先看效果
+    c.strokeStyle='#c6dcd1';c.lineWidth=3;c.setLineDash([10,8]);
+    roundRect(c,qx+10,qy+10,qs-20,qs-20,12);c.stroke();c.setLineDash([]);
+    c.textAlign='center';c.fillStyle='#93a89f';c.font='500 22px '+FONT;
+    c.fillText('在这里放二维码',qx+qs/2,qy+qs/2+8);
+    drawLabel();
+    return Promise.resolve(cv.toDataURL('image/png'));
+  }
+}
+
+function wrapText(c,text,x,y,maxW,lineH,maxLines){
+  const chars=String(text).split('');
+  let line='',lines=[];
+  for(let i=0;i<chars.length;i++){
+    const test=line+chars[i];
+    if(c.measureText(test).width>maxW&&line){
+      lines.push(line);line=chars[i];
+      if(lines.length>=maxLines)break;
+    }else line=test;
+  }
+  if(lines.length<maxLines&&line)lines.push(line);
+  lines.forEach(function(l,i){c.fillText(l,x,y+i*lineH);});
+}
+
+const curRank=function(){
+  const nw=netWorth();
+  if(S.act>=2){
+    const w=S.total.regionWins;
+    if(w>=5)return netWorth()>=13000000
+      ?{r:'二奢之王',c:'#e8c46a',ic:'👑',d:'五个区域全部垄断，账面也漂亮得不像话'}
+      :{r:'区域级垄断',c:'#12a06e',ic:'🏆',d:'五个区域全拿下了'};
+    if(w>=3)return{r:'区域级连锁',c:'#7c3aed',ic:'🤑',d:'版图已经铺开'};
+    if(w>=1)return{r:'扩张初见成效',c:'#12a06e',ic:'😎',d:'第一块外地招牌立住了'};
+    return{r:'扩张受挫',c:'#5d7a6e',ic:'😕',d:'分店开了，地头蛇没打下来'};
+  }
+  return rankOf(nw);
+};
+
+/* 展示战报图（手机微信里 download 属性不可靠，所以用长按保存） */
+function showShareCard(){
+  track('share_card_open',{rank:curRank().r,net:Math.round(netWorth())});
+  toast('正在生成战报图…','#0e8a5f');
+  buildShareCard().then(function(dataUrl){
+    const e=document.getElementById('shareMask');if(e)e.remove();
+    const m=document.createElement('div');
+    m.className='mask';m.id='shareMask';
+    m.innerHTML='<div class="modal" style="max-width:420px;text-align:center">'+
+      '<h2 style="letter-spacing:1px">你的经营战报</h2>'+
+      '<p style="margin-bottom:14px">长按图片保存，或截图分享给朋友</p>'+
+      '<img src="'+dataUrl+'" style="width:100%;border-radius:14px;border:1px solid var(--line);box-shadow:0 12px 30px -14px rgba(16,60,42,.3)"/>'+
+      '<div style="display:flex;gap:10px;margin-top:16px">'+
+      '<a class="btn gold" style="flex:1;text-decoration:none;padding:12px" href="'+dataUrl+'" download="二奢模拟器-战报.png">⬇️ 下载图片</a>'+
+      '<button class="btn ghost" style="flex:1" onclick="document.getElementById(\'shareMask\').remove()">关闭</button>'+
+      '</div>'+
+      '<div class="tiny muted" style="margin-top:12px">微信里请长按图片 → 保存到相册</div>'+
+      '</div>';
+    document.body.appendChild(m);
+  });
+}
+
 /* ---------- 结束 ---------- */
+let __overTracked=false;
 function renderOver(){
+  if(!__overTracked){__overTracked=true;track('game_over',{day:S.day,net:Math.round(netWorth()),deals:S.total.deals,rank:curRank().r,act:S.act});}
   const nw=netWorth();
   const invVal=S.inventory.reduce((a,it)=>a+itemValue(it),0);
   const t=S.total;
@@ -2185,10 +2418,40 @@ function renderOver(){
     </div>
 
     <div style="margin:28px 0 10px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-      <button class="btn gold" style="padding:14px 44px;font-size:15px" onclick="startGame()">再 来 一 局</button>
+      <button class="btn gold" style="padding:14px 44px;font-size:15px" onclick="showShareCard()">📸 生成战报图，晒一晒</button>
+      <button class="btn ghost" style="padding:14px 30px;font-size:15px" onclick="startGame()">再 来 一 局</button>
     </div>
+
+    ${renderCTA()}
+
     <div class="brandmark-foot">二奢模拟器 · LUXURY RESALE SIMULATOR</div>
   </div>`;
+}
+
+/* 结算页的转化卡片 —— 玩家刚体验完"收包赚钱"，这时对"我的包值多少"最敏感 */
+function renderCTA(){
+  if(!PROMO.ctaTitle)return '';
+  const qrHtml=PROMO.qr
+    ? `<img src="${PROMO.qr}" alt="二维码" style="width:132px;height:132px;border-radius:12px;background:#fff;border:1px solid var(--line);object-fit:contain"/>`
+    : `<div style="width:132px;height:132px;border-radius:12px;border:2px dashed var(--line2);display:grid;place-items:center;color:var(--dim2);font-size:11px;text-align:center;line-height:1.4;background:#fff">二维码<br>位置</div>`;
+  return `<div class="card" style="max-width:620px;margin:24px auto 0;text-align:left;border-color:var(--brand);background:linear-gradient(180deg,rgba(18,160,110,.07),rgba(18,160,110,.02))">
+    <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap;justify-content:center">
+      <div style="flex:1;min-width:220px">
+        <div style="font-size:19px;font-weight:900;color:var(--brand);line-height:1.35">${PROMO.ctaTitle}</div>
+        <div style="font-size:13px;color:var(--dim);margin:10px 0 16px;line-height:1.8">${PROMO.ctaDesc}</div>
+        <button class="btn gold" style="padding:11px 26px;font-size:14px" onclick="ctaClick()">${PROMO.ctaBtn}</button>
+      </div>
+      <div style="text-align:center">
+        ${qrHtml}
+        <div style="font-size:11px;color:var(--dim);margin-top:8px">${PROMO.qrLabel}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function ctaClick(){
+  track('cta_click',{rank:curRank().r});
+  if(PROMO.ctaTip)toast(PROMO.ctaTip,'#0e8a5f');
 }
 
 /* ---------------- 启动 ---------------- */
@@ -2205,6 +2468,7 @@ window.doCompete=doCompete;window.launchRegionWar=launchRegionWar;window.assignM
 window.closeBranch=closeBranch;window.startAct2=startAct2;window.forceEnd=forceEnd;
 window.openBranch=openBranch;window.myPower=myPower;window.RMAP=RMAP;
 window.showManagerPick=showManagerPick;window.doAssign=doAssign;
+window.showShareCard=showShareCard;window.ctaClick=ctaClick;window.buildShareCard=buildShareCard;window.PROMO=PROMO;window.track=track;
 </script>
 </body>
 </html>
