@@ -322,6 +322,9 @@ const COMPETE_ACTIONS=[
   {id:'deal', name:'商务合作', ic:'🤝',cost:40000,desc:'谈停战 3 天，他不再截胡和分流你的客人'}
 ];
 
+/* 版本号：改动战报图这类视觉逻辑时 +1，用来判断用户是不是看到了缓存旧版 */
+const CARD_VER='v3';
+
 /* ============================================================
    分享配置 —— 改这里就行，不用动其它代码
 
@@ -1345,7 +1348,7 @@ function renderAct2(){
       <button class="btn gold" style="padding:14px 40px;font-size:15px" onclick="startAct2()">进入第二幕 · 连锁扩张</button>
       <button class="btn ghost" style="padding:14px 26px" onclick="forceEnd()">就此收官，看总结</button>
     </div>
-    <div class="brandmark-foot">二奢模拟器 · LUXURY RESALE SIMULATOR</div>
+    <div class="brandmark-foot">二奢模拟器 · LUXURY RESALE SIMULATOR · ${CARD_VER}</div>
   </div>`;
 }
 function startAct2(){
@@ -1396,7 +1399,7 @@ function renderTitle(){
       <button class="btn ${sv?'ghost':'gold'}" style="padding:14px 44px;font-size:16px;border-radius:12px" onclick="startGame()">${sv?'重新开始一局':'开 始 经 营'}</button>
       <button class="btn ghost" style="padding:14px 26px" onclick="showHelp()">玩法说明</button>
     </div>
-    <div class="brandmark-foot">二奢模拟器 · LUXURY RESALE SIMULATOR</div>
+    <div class="brandmark-foot">二奢模拟器 · LUXURY RESALE SIMULATOR · ${CARD_VER}</div>
   </div>`;
 }
 
@@ -2426,9 +2429,8 @@ function buildShareCard(){
   c.textAlign='center';
   c.fillText('二 奢 模 拟 器',W/2,104);
 
-  // 评级图标（必须用 emoji 字体栈）
-  c.font='84px '+EMOJI;
-  c.fillText(R.ic,W/2,212);
+  // 评级图标（能画 emoji 就画 emoji，不能就画徽章）
+  drawRankIcon(c,W/2,212,{ic:R.ic,r:R.r});
 
   // 评级名称：字数多就自动缩小，避免顶到绿块边缘
   c.fillStyle='#ffffff';
@@ -2539,6 +2541,45 @@ function buildShareCard(){
   }
 }
 
+/* 检测 canvas 是否真能画出 emoji。
+   某些环境（缺字体、精简 WebView）会把 emoji 画成豆腐块 □，
+   这时降级成 Canvas 手绘的圆形徽章，总比一个方框强。 */
+let __emojiOK=null;
+function emojiWorks(){
+  if(__emojiOK!==null)return __emojiOK;
+  try{
+    const t=document.createElement('canvas');
+    t.width=t.height=32;
+    const x=t.getContext('2d');
+    x.textBaseline='top';x.fillStyle='#000';
+    x.font='24px '+EMOJI;
+    x.fillText('\u{1F972}',2,2);                       // 🥲
+    const a=x.getImageData(0,0,32,32).data;
+    x.clearRect(0,0,32,32);
+    x.fillText('\u{10FFFD}',2,2);                      // 私有区码位，必定无字形
+    const b=x.getImageData(0,0,32,32).data;
+    let diff=0;
+    for(let i=3;i<a.length;i+=4){ if(Math.abs(a[i]-b[i])>10)diff++; }
+    __emojiOK=diff>15;
+  }catch(e){ __emojiOK=false; }
+  return __emojiOK;
+}
+
+/* 评级图标：能用 emoji 就用，不能就画个圆徽章 + 评级首字 */
+function drawRankIcon(c,x,y,rank){
+  if(emojiWorks()){
+    c.font='84px '+EMOJI;
+    c.fillText(rank.ic,x,y);
+    return;
+  }
+  c.beginPath();c.arc(x,y-30,44,0,Math.PI*2);
+  c.fillStyle='rgba(255,255,255,.18)';c.fill();
+  c.strokeStyle='rgba(255,255,255,.55)';c.lineWidth=3;c.stroke();
+  c.fillStyle='#ffffff';
+  c.font='900 44px '+FONT;
+  c.fillText(rank.r.charAt(0),x,y-14);
+}
+
 /* 自动缩字号，保证一行放得下 —— 宁可字小一点，也不能被截断 */
 function fitText(c,text,x,y,maxW,weight,baseSize,minSize,fontStack){
   const stack=fontStack||FONT;
@@ -2597,7 +2638,7 @@ function showShareCard(){
       '<a class="btn gold" style="flex:1;text-decoration:none;padding:12px" href="'+dataUrl+'" download="二奢模拟器-战报.png">⬇️ 下载图片</a>'+
       '<button class="btn ghost" style="flex:1" onclick="document.getElementById(\'shareMask\').remove()">关闭</button>'+
       '</div>'+
-      '<div class="tiny muted" style="margin-top:12px">微信里请长按图片 → 保存到相册</div>'+
+      '<div class="tiny muted" style="margin-top:12px">微信里请长按图片 → 保存到相册　·　'+CARD_VER+'</div>'+
       '<div style="margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)">'+
       '<div class="tiny muted" style="margin-bottom:8px">换个思路，这局能打得更好吗？</div>'+
       '<button class="btn gold" style="padding:11px 30px" onclick="document.getElementById(\'shareMask\').remove();startGame()">🔄 再 来 一 局</button>'+
@@ -2669,7 +2710,7 @@ function renderOver(){
 
     ${renderCTA()}
 
-    <div class="brandmark-foot">二奢模拟器 · LUXURY RESALE SIMULATOR</div>
+    <div class="brandmark-foot">二奢模拟器 · LUXURY RESALE SIMULATOR · ${CARD_VER}</div>
   </div>`;
 }
 
@@ -2714,7 +2755,7 @@ window.closeBranch=closeBranch;window.startAct2=startAct2;window.forceEnd=forceE
 window.openBranch=openBranch;window.myPower=myPower;window.RMAP=RMAP;
 window.showManagerPick=showManagerPick;window.doAssign=doAssign;
 window.showShareCard=showShareCard;window.ctaClick=ctaClick;
-window.showTutorial=showTutorial;window.finishTutorial=finishTutorial;
+window.showTutorial=showTutorial;window.finishTutorial=finishTutorial;window.CARD_VER=CARD_VER;window.emojiWorks=emojiWorks;
 window.resumeGame=resumeGame;window.saveGame=saveGame;window.loadGame=loadGame;window.clearSave=clearSave;window.saveInfo=saveInfo;window.buildShareCard=buildShareCard;window.PROMO=PROMO;window.track=track;
 </script>
 </body>
