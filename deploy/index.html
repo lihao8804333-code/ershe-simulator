@@ -346,7 +346,7 @@ const PROMO={
 
   /* 可选：战报图底部显示游戏网址（留空就不显示）
      填了之后别人看到图就知道去哪玩，传播效率高很多 */
-  gameUrl:'',
+  gameUrl:'https://ershe-simulator.netlify.app',
 
   /* ---------- 以下都是商业获客用的，纯分享就留空 ---------- */
 
@@ -2661,8 +2661,8 @@ function buildShareCard(){
       c.strokeStyle='#a9e0c4';c.lineWidth=2;
       roundRect(c,W/2-215,1068,430,54,27);c.stroke();
       c.fillStyle='#0e8a5f';
-      c.font='700 28px '+FONT;
-      c.fillText(PROMO.gameUrl,W/2,1104);
+      /* 域名长度不可控，用 fitText 自动缩字号，避免顶出胶囊 */
+      fitText(c,PROMO.gameUrl,W/2,1104,390,'700',28,15);
     }
     return Promise.resolve(cv.toDataURL('image/png'));
   }
