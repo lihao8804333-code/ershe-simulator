@@ -256,7 +256,7 @@ const BMAP={};BRANDS.forEach(b=>BMAP[b.name]=b);
 
 const ROLES={
   buyer:    {name:'回收师',ic:'🎒',desc:'带回货源 · 初判真伪 · 压价谈判'},
-  appraiser:{name:'鉴定师',ic:'🔍',desc:'专业鉴定 · 准确率随技能提升'},
+  appraiser:{name:'鉴定师',ic:'🔍',desc:'专业鉴定 · 准确率 88% 起，满技能 99%'},
   care:     {name:'护理师',ic:'💧',desc:'翻新护理 · 提升品相与售价'},
   sales:    {name:'销售',  ic:'💼',desc:'接待客户 · 提升议价上限'}
 };
@@ -437,6 +437,25 @@ const condOf=it=>CONDITIONS[it.cond];
 const marketOf=it=>Math.round(it.sellBase*condOf(it).mul*(S.hotBrand===it.brand?1.22:1));
 const trueLabel=it=>it.fake==='genuine'?'真品':(it.fake==='superfake'?'高仿':'假货');
 
+/* ============================================================
+   鉴定 —— 定位是「保险」：花钱买确定性，不是赌博
+   准确率很高（88% 起，满技能 99%），看走眼的少数情况里
+   多数会诚实说"拿不准"，而不是自信地给出错误结论。
+   一定要避免的是"花钱买了个错答案，系统还当场承认错了"。
+   ============================================================ */
+function appraiseAcc(){return clamp(0.88+bestSkill('appraiser')*0.011,0.88,0.99);}
+function appraiseRoll(truth){
+  if(chance(appraiseAcc()))return truth;
+  if(chance(0.78))return 'unsure';                      // 看走眼时，绝大多数会承认拿不准
+  return truth==='genuine'?'superfake':'genuine';       // 极少数才会给出明确但错误的结论
+}
+function appraiseLabel(res){
+  return res==='genuine'?'真品':res==='unsure'?'拿不准':res==='superfake'?'高仿':'假货';
+}
+/* "拿不准"不等于"已知是假" —— 判断已知假货时必须用它，不能直接比 !=='genuine' */
+function isKnownFake(it){return !!(it.verified&&(it.belief==='fake'||it.belief==='superfake'));}
+function isUnsure(it){return !!(it.verified&&it.belief==='unsure');}
+
 /* ---------------- 货源生成 ---------------- */
 function mkOffer(){
   const bs=bestSkill('buyer');
@@ -552,7 +571,7 @@ function payBooth(){
 /* 甩货：即时到账、不限量，但价格只有市价 58%；同行会验货，假货藏不住 */
 function dumpCaughtProb(it){
   if(it.fake==='genuine')return 0;
-  return (it.verified&&it.belief!=='genuine')?0.45:0.28;
+  return (isKnownFake(it))?0.45:0.28;
 }
 function actFairDump(id){
   if(!S.fairBoothPaid){toast('先租个展位才能甩货','#dc2626');return;}
@@ -566,7 +585,7 @@ function actFairDump(id){
     toast('被同行验出假货了！','#dc2626');
     render();return;
   }
-  const knowsFake=it.verified&&it.belief!=='genuine';
+  const knowsFake=isKnownFake(it);
   const price=Math.round(marketOf(it)*FAIR_DUMP_MUL/100)*100;
   S.cash+=price;S.daily.rev+=price;S.daily.dumpRev+=price;
   S.total.rev+=price;S.total.dumpRev+=price;S.fairDumped++;
@@ -583,7 +602,7 @@ function actFairDumpAll(){
   if(!confirm(`确定把 ${list.length} 件库存全部按市价 ${Math.round(FAIR_DUMP_MUL*100)}% 甩掉？`))return;
   let total=0,n=0;
   for(const it of list){
-    const knowsFake=it.verified&&it.belief!=='genuine';
+    const knowsFake=isKnownFake(it);
     if(chance(dumpCaughtProb(it))){
       S.inventory=S.inventory.filter(x=>x.id!==it.id);
       S.rep=clamp(S.rep-12,0,100);
@@ -1026,15 +1045,11 @@ function actOffer(oid,act){
     if(S.cash<fee){toast('现金不足支付鉴定费','#dc2626');return;}
     S.cash-=fee;S.daily.cost+=fee;S.daily.fee+=fee;S.total.cost+=fee;
     o.appraised=true;
-    const acc=clamp(0.62+bestSkill('appraiser')*0.032,0.62,0.95);
-    const right=chance(acc);
-    let res;
-    if(right)res=o.fake;
-    else res=o.fake==='genuine'?(chance(0.5)?'superfake':'fake'):'genuine';
+    const res=appraiseRoll(o.fake);
     o.appraiseResult=res;
-    const label=res==='genuine'?'✅ 鉴定为真品':(res==='superfake'?'⚠️ 鉴定为高仿':(res==='fake'?'❌ 鉴定为假货':'—'));
+    const label=res==='genuine'?'✅ 鉴定为真品':(res==='unsure'?'🤔 鉴定师拿不准':(res==='superfake'?'⚠️ 鉴定为高仿':'❌ 鉴定为假货'));
     o.msg=`🔍 支付鉴定费 ${money(fee)}，${label}`;
-    log(`🔍 鉴定 ${o.brand} ${o.model}：${res==='genuine'?'真品':res==='superfake'?'高仿':'假货'}（花费 ${money(fee)}）`,res==='genuine'?'':'warn');
+    log(`🔍 鉴定 ${o.brand} ${o.model}：${appraiseLabel(res)}（花费 ${money(fee)}）`,res==='genuine'?'':'warn');
     render();
   }
 }
@@ -1158,7 +1173,7 @@ function actCustomer(cid,act){
 
   if(act==='deal'){
     const isFake=it.fake!=='genuine';
-    const knowsFake=it.verified&&it.belief!=='genuine';
+    const knowsFake=isKnownFake(it);
     let caught=false;
     if(isFake){
       const p=knowsFake?0.34:0.18;
@@ -1215,6 +1230,7 @@ function actCustomer(cid,act){
 function actTorch(id){
   const it=S.inventory.find(x=>x.id===id);
   if(!it)return;
+  if(!confirm(`确定销毁 ${it.brand} ${it.model}？\n\n销毁不可撤销。鉴定师不是 100% 准，万一他看走了眼，这只真品就没了。`))return;
   S.inventory=S.inventory.filter(x=>x.id!==it.id);
   S.total.fakeTorched++;
   S.rep=clamp(S.rep+1.5,0,100);
@@ -1273,7 +1289,7 @@ function nextDay(){
 }
 
 /* ---------------- 估值与评级 ---------------- */
-const itemValue=it=>(it.verified&&it.belief!=='genuine')?Math.round(it.cost*0.05):marketOf(it);
+const itemValue=it=>(isKnownFake(it))?Math.round(it.cost*0.05):marketOf(it);
 function netWorth(){
   return S.cash+S.inventory.reduce((a,it)=>a+itemValue(it),0);
 }
@@ -1384,7 +1400,7 @@ function renderTitle(){
     </p>
     <div class="feat">
       <div><div class="fi">🎒</div><div class="ft">回收师</div><div class="fd">上门收货，初判真伪，帮你压价砍到卖家肉疼</div></div>
-      <div><div class="fi">🔍</div><div class="ft">鉴定师</div><div class="fd">一次鉴定费换一个真相，但高手也会看走眼</div></div>
+      <div><div class="fi">🔍</div><div class="ft">鉴定师</div><div class="fd">花鉴定费买确定性，准确率很高。水平不够时会说"拿不准"</div></div>
       <div><div class="fi">💧</div><div class="ft">护理师</div><div class="fd">翻新提品相，售价直接上一个台阶</div></div>
       <div><div class="fi">💼</div><div class="ft">销售</div><div class="fd">接待客户，谈价加成，决定你能接多少客</div></div>
     </div>
@@ -1620,7 +1636,7 @@ function showHelp(){
     </ul>
     <h3>关键机制</h3>
     <ul>
-      <li><b class="gold-t">真假难辨</b>：市场上有约 16% 的高仿/假货。回收师"初判"只有 50%~86% 准；鉴定师"送检"要花钱，也不是 100% 准。买假货 = 血亏。</li>
+      <li><b class="gold-t">真假难辨</b>：市场上有约 16% 的高仿/假货。回收师"初判"只有 50%~86% 准，只能当参考；<b>送鉴定要花钱，但很准</b>（88% 起，满技能 99%）。鉴定师水平不够时会直接说"拿不准"，换个再验一次即可。买到假货 = 血亏。</li>
       <li><b class="gold-t">混卖风险</b>：未鉴定的包卖出去有 18% 概率被客户识破；明知是假还卖，风险升到 34%。被识破要退款+赔偿+声望暴跌。</li>
       <li><b class="gold-t">声望</b>：影响客户档次与出价。高声望吸引企业家和收藏玩家。</li>
       <li><b class="gold-t">粉丝</b>：抖音粉丝是长期资产，每天持续带来自然到店客户。</li>
@@ -1722,7 +1738,7 @@ function stageFair(){
         <div class="tiny muted" style="margin-bottom:6px">也可以挑着甩：</div>`+
         S.inventory.map(it=>{
           const price=Math.round(marketOf(it)*FAIR_DUMP_MUL/100)*100;
-          const knowsFake=it.verified&&it.belief!=='genuine';
+          const knowsFake=isKnownFake(it);
           const gain=price-it.cost;
           return `<div class="inv" style="${knowsFake?'border-color:#f3b6b6':''}">
             <div class="ic" style="color:${BMAP[it.brand].color}">${BMAP[it.brand].ic}</div>
@@ -1798,7 +1814,7 @@ function stageLive(){
   if(S.inventory.length===0)h+=`<div class="empty" style="padding:16px"><span class="e">📦</span>库存是空的，没法开播</div>`;
   else h+=`<div style="max-height:340px;overflow-y:auto">`+S.inventory.map(it=>{
     const on=picks.includes(it.id);
-    const knowsFake=it.verified&&it.belief!=='genuine';
+    const knowsFake=isKnownFake(it);
     const rp=Math.round(liveReturnRate(it)*100);
     const est=t?Math.round(marketOf(it)*(1.12+t.premium+bestSkill('sales')*0.015)):0;
     return `<button class="inv" style="width:100%;text-align:left;${on?'border-color:var(--brand);background:rgba(14,138,95,.08)':''}${knowsFake?'border-color:#f3b6b6':''}"
@@ -1894,12 +1910,17 @@ function offerHTML(o){
   let body='';
   if(o.appraised){
     const r=o.appraiseResult;
-    const col=r==='genuine'?['#12a06e','rgba(18,160,110,.10)']:(r==='superfake'?['#0e8a5f','rgba(14,138,95,.10)']:['#dc2626','rgba(220,38,38,.09)']);
-    body+=`<div class="note" style="border-color:${col[0]};color:${col[0]};background:${col[1]}">
-      鉴定结果：<b>${r==='genuine'?'真品 ✅':r==='superfake'?'高仿 ⚠️':'假货 ❌'}</b>${o.appraiseResult!==o.fake?'　<span class="tiny">（鉴定师好像看走眼了…）</span>':''}</div>`;
+    if(r==='unsure'){
+      body+=`<div class="note" style="border-color:#c6dcd1;color:#5d7a6e;background:#f6fbf8">
+        鉴定结果：<b>拿不准 🤔</b>　<span class="tiny">这家看不出来。换个更靠谱的鉴定师，或者自己拿主意。</span></div>`;
+    }else{
+      const col=r==='genuine'?['#12a06e','rgba(18,160,110,.10)']:(r==='superfake'?['#0e8a5f','rgba(14,138,95,.10)']:['#dc2626','rgba(220,38,38,.09)']);
+      body+=`<div class="note" style="border-color:${col[0]};color:${col[0]};background:${col[1]}">
+        鉴定结果：<b>${r==='genuine'?'真品 ✅':r==='superfake'?'高仿 ⚠️':'假货 ❌'}</b></div>`;
+    }
   }
 
-  return `<div class="deal ${o.appraised&&o.appraiseResult!=='genuine'?'fake':''}">
+  return `<div class="deal ${o.appraised&&(o.appraiseResult==='fake'||o.appraiseResult==='superfake')?'fake':''}">
     <div class="deal-top">
       <div>
         <div class="deal-title" style="color:${b.color}">${b.ic} ${o.brand} <span style="color:var(--txt)">${o.model}</span></div>
@@ -2019,7 +2040,7 @@ function customerHTML(c){
   const profit=c.bid-it.cost;
   const b=BMAP[it.brand];
   const hp=Math.round(clamp(0.28+bestSkill('sales')*0.038+(S.rep-50)/320,0.12,0.88)*100);
-  const knowsFake=it.verified&&it.belief!=='genuine';
+  const knowsFake=isKnownFake(it);
   const risky=it.fake!=='genuine';
   return `<div class="deal">
     <div class="deal-top">
@@ -2313,12 +2334,12 @@ function renderAlerts(){
 }
 
 function renderInv(){
-  const val=S.inventory.reduce((a,it)=>a+((it.verified&&it.belief!=='genuine')?it.cost*0.05:marketOf(it)),0);
+  const val=S.inventory.reduce((a,it)=>a+((isKnownFake(it))?it.cost*0.05:marketOf(it)),0);
   let h=`<div class="card"><div class="card-h"><span>📦 库存 ${S.inventory.length}</span><span class="tag">估值 ${money(val)}</span></div>`;
   if(S.inventory.length===0)h+=`<div class="empty" style="padding:16px"><span class="e">🗃️</span>暂无库存</div>`;
   else h+=`<div style="max-height:320px;overflow-y:auto">`+S.inventory.map(it=>{
     const b=BMAP[it.brand];
-    const knowsFake=it.verified&&it.belief!=='genuine';
+    const knowsFake=isKnownFake(it);
     const mp=knowsFake?0:marketOf(it);
     const gain=mp-it.cost;
     const vfee=Math.round(Math.max(500,it.retail*0.015)*Math.pow(1.8,it.verifyCount)/100)*100;
@@ -2327,19 +2348,23 @@ function renderInv(){
       <div style="flex:1;min-width:0">
         <div class="nm">${it.brand} ${it.model}</div>
         <div class="mt">${condOf(it).ic}${condOf(it).name} · 成本 ${money(it.cost)}
-          ${it.verified?(knowsFake?`<span class="neg"> · 已鉴定：${trueLabel({fake:it.belief})}</span>`:'<span class="pos"> · 已鉴定：真品</span>'):'<span class="muted"> · 未鉴定</span>'}</div>
+          ${!it.verified?'<span class="muted"> · 未鉴定</span>'
+            :(knowsFake?`<span class="neg"> · 已鉴定：${appraiseLabel(it.belief)}</span>`
+            :(isUnsure(it)?'<span class="muted"> · 已鉴定：拿不准</span>':'<span class="pos"> · 已鉴定：真品</span>'))}</div>
         ${knowsFake
           ?`<div class="mt neg">鉴定结论是假货 —— 只能销毁，或赌一把混卖</div>`
-          :`<div class="mt">市值 <b style="color:var(--brand)">${money(mp)}</b> <span class="${gain>=0?'pos':'neg'}">(${gain>=0?'+':''}${wshort(gain)})</span></div>`}
+          :(isUnsure(it)
+            ?`<div class="mt muted">鉴定师拿不准，要不要换个再验一次？</div>`
+            :`<div class="mt">市值 <b style="color:var(--brand)">${money(mp)}</b> <span class="${gain>=0?'pos':'neg'}">(${gain>=0?'+':''}${wshort(gain)})</span></div>`)}
       </div>
       <div style="display:flex;flex-direction:column;gap:4px">
         ${knowsFake?`<button class="btn sm red" onclick="actTorch(${it.id})" title="砸掉它，换一点心安">销毁</button>`:''}
         ${!it.verified?`<button class="btn sm" onclick="actVerify(${it.id})" title="送鉴定师复检，花费 ${money(vfee)}">鉴定</button>`
-          :`<button class="btn sm ghost" onclick="actVerify(${it.id})" title="换个鉴定师复检，花费 ${money(vfee)}">复检</button>`}
+          :`<button class="btn sm ghost" onclick="actVerify(${it.id})" title="换个鉴定师复检，花费 ${money(vfee)}">${isUnsure(it)?'再验一次':'复检'}</button>`}
       </div>
     </div>`;
   }).join('')+`</div>`;
-  h+=`<div class="tiny muted" style="margin-top:8px">未鉴定的货真伪未知，卖出时有 18% 概率因真伪纠纷被退货索赔。鉴定师也会看走眼。</div>`;
+  h+=`<div class="tiny muted" style="margin-top:8px">未鉴定的货真伪未知，卖出时有 18% 概率因真伪纠纷被退货索赔。鉴定师水平不够时会说"拿不准"，换人再验一次即可。</div>`;
   h+=`</div>`;
   return h;
 }
@@ -2352,11 +2377,13 @@ function actVerify(id){
   if(S.cash<fee){toast('现金不足支付鉴定费','#dc2626');return;}
   S.cash-=fee;S.daily.cost+=fee;S.daily.fee+=fee;S.total.cost+=fee;
   it.verifyCount++;it.verified=true;
-  const acc=clamp(0.62+bestSkill('appraiser')*0.032,0.62,0.95);
-  it.belief=chance(acc)?it.fake:(it.fake==='genuine'?(chance(0.5)?'superfake':'fake'):'genuine');
+  it.belief=appraiseRoll(it.fake);
   if(it.belief==='genuine'){
     log(`🔍 鉴定 ${it.brand} ${it.model}：真品（花费 ${money(fee)}）`,'good');
     toast('鉴定结论：真品 ✅','#12a06e');
+  }else if(it.belief==='unsure'){
+    log(`🔍 鉴定 ${it.brand} ${it.model}：这家拿不准（花费 ${money(fee)}）`,'');
+    toast('鉴定结论：拿不准 🤔','#5d7a6e');
   }else{
     log(`🔍 鉴定 ${it.brand} ${it.model}：${it.belief==='superfake'?'高仿':'假货'}！（花费 ${money(fee)}）`,'warn');
     toast('鉴定结论：'+(it.belief==='superfake'?'高仿':'假货')+' ❌','#dc2626');
@@ -2756,6 +2783,7 @@ window.openBranch=openBranch;window.myPower=myPower;window.RMAP=RMAP;
 window.showManagerPick=showManagerPick;window.doAssign=doAssign;
 window.showShareCard=showShareCard;window.ctaClick=ctaClick;
 window.showTutorial=showTutorial;window.finishTutorial=finishTutorial;window.CARD_VER=CARD_VER;window.emojiWorks=emojiWorks;
+window.appraiseRoll=appraiseRoll;window.appraiseAcc=appraiseAcc;window.appraiseLabel=appraiseLabel;window.isKnownFake=isKnownFake;window.isUnsure=isUnsure;
 window.resumeGame=resumeGame;window.saveGame=saveGame;window.loadGame=loadGame;window.clearSave=clearSave;window.saveInfo=saveInfo;window.buildShareCard=buildShareCard;window.PROMO=PROMO;window.track=track;
 </script>
 </body>
