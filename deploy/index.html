@@ -950,6 +950,7 @@ function startDay(){
   genOffers();
   S.phase='collect';
   noteVisit('collect');
+  saveGame();   // 每天开局先存一次
   render();
 }
 
@@ -1225,7 +1226,13 @@ function actTorch(id){
 }
 
 /* ---------------- 阶段推进 ---------------- */
-function enterPhase(p){S.phase=p;noteVisit(p);if(p==='sell')genCustomers();if(p==='settle')doSettle();render();}
+function enterPhase(p){
+  S.phase=p;noteVisit(p);
+  if(p==='sell')genCustomers();
+  if(p==='settle')doSettle();
+  saveGame();   // 阶段切换是天然检查点，不受节流影响，强制存一次
+  render();
+}
 
 function doSettle(){
   // 派驻分店的员工工资由分店自己出，不重复计入老店
@@ -2383,7 +2390,9 @@ function renderLog(){
 /* ============================================================
    分享战报图 —— 推广的核心：让玩家愿意转发，且转发出去带着你的二维码
    ============================================================ */
-const FONT='"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif';
+const FONT='"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Segoe UI Emoji","Apple Color Emoji",sans-serif';
+/* emoji 单独一个字体栈 —— 只靠中文字体的话 canvas 会画成豆腐块 */
+const EMOJI='"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji","Segoe UI Symbol",sans-serif';
 
 function roundRect(c,x,y,w,h,r){
   c.beginPath();
@@ -2405,34 +2414,35 @@ function buildShareCard(){
   // 背景
   c.fillStyle='#eef6f1';c.fillRect(0,0,W,H);
 
-  // 顶部绿色渐变块
+  // 顶部绿色渐变块（36 ~ 470）
   const g=c.createLinearGradient(0,0,W,420);
   g.addColorStop(0,'#12a06e');g.addColorStop(1,'#0a6b49');
   c.fillStyle=g;
-  roundRect(c,36,36,W-72,430,28);c.fill();
+  roundRect(c,36,36,W-72,434,28);c.fill();
 
   // 品牌名
   c.fillStyle='rgba(255,255,255,.82)';
   c.font='600 26px '+FONT;
   c.textAlign='center';
-  c.fillText('二 奢 模 拟 器',W/2,110);
+  c.fillText('二 奢 模 拟 器',W/2,104);
 
-  // 评级
-  c.font='88px '+FONT;
-  c.fillText(R.ic,W/2,225);
+  // 评级图标（必须用 emoji 字体栈）
+  c.font='84px '+EMOJI;
+  c.fillText(R.ic,W/2,212);
+
+  // 评级名称：字数多就自动缩小，避免顶到绿块边缘
   c.fillStyle='#ffffff';
-  c.font='900 76px '+FONT;
-  c.fillText(R.r,W/2,320);
+  fitText(c,R.r,W/2,300,W-140,'900',72,44);
 
-  // 评级副文案
-  c.fillStyle='rgba(255,255,255,.88)';
-  c.font='500 24px '+FONT;
-  wrapText(c,R.d,W/2,368,W-160,36,2);
+  // 评级副文案：最多两行，必须画在白卡上方（白卡从 414 开始）
+  c.fillStyle='rgba(255,255,255,.9)';
+  c.font='500 23px '+FONT;
+  wrapText(c,R.d,W/2,352,W-150,36,2);
 
-  // 白色数据卡
+  // 白色数据卡（414 ~ 774）
   c.fillStyle='#ffffff';
-  roundRect(c,36,400,W-72,340,28);
   c.shadowColor='rgba(16,60,42,.10)';c.shadowBlur=24;c.shadowOffsetY=8;
+  roundRect(c,36,414,W-72,360,28);
   c.fill();
   c.shadowColor='transparent';c.shadowBlur=0;c.shadowOffsetY=0;
 
@@ -2444,7 +2454,9 @@ function buildShareCard(){
     [S.act>=2?'垄断区域':'本区市占', S.act>=2?(t.regionWins+'/5'):(Math.round(S.share)+'%')]
   ];
   stats.forEach(function(s,i){
-    const cx=36+((W-72)/4)*(i*2+1), cy=i<2?490:625;
+    // 两列：列号必须是 i%2，之前写成 i*2 导致第二行被画到画布外面
+    const cx=36+((W-72)/4)*((i%2)*2+1);
+    const cy=i<2?496:634;
     c.textAlign='center';
     c.fillStyle='#5d7a6e';c.font='500 24px '+FONT;
     c.fillText(s[0],cx,cy);
@@ -2454,8 +2466,8 @@ function buildShareCard(){
   });
   // 分隔线
   c.strokeStyle='#e2ede7';c.lineWidth=2;
-  c.beginPath();c.moveTo(W/2,460);c.lineTo(W/2,700);
-  c.moveTo(70,565);c.lineTo(W-70,565);c.stroke();
+  c.beginPath();c.moveTo(W/2,444);c.lineTo(W/2,744);
+  c.moveTo(70,574);c.lineTo(W-70,574);c.stroke();
 
   // 引导语
   c.textAlign='center';
@@ -2463,20 +2475,20 @@ function buildShareCard(){
   c.font='700 34px '+FONT;
   const hook=PROMO.hookLine
     .replace('{rank}',R.r).replace('{net}',money(nw)).replace('{days}',S.day);
-  wrapText(c,hook.split('\n')[0],W/2,800,W-140,44,1);
+  fitText(c,hook.split('\n')[0],W/2,826,W-130,'700',34,20);
   c.fillStyle='#5d7a6e';
   c.font='500 28px '+FONT;
   const l2=hook.split('\n')[1]||'';
-  if(l2)c.fillText(l2,W/2,850);
+  if(l2)fitText(c,l2,W/2,868,W-130,'500',28,20);
 
-  // 底部区域
+  // 底部区域（906 ~ 1150）
   c.fillStyle='#ffffff';
-  roundRect(c,36,890,W-72,250,28);c.fill();
+  roundRect(c,36,906,W-72,244,28);c.fill();
 
   /* 只有配了二维码才画二维码（商业用途）；
      纯分享模式就在这块地方放一句「你也来试试」 */
   if(PROMO.qr){
-    const qx=80,qy=928,qs=174;
+    const qx=80,qy=942,qs=172;
     c.fillStyle='#f6fbf8';
     roundRect(c,qx,qy,qs,qs,16);c.fill();
     const drawLabel=function(){
@@ -2507,26 +2519,38 @@ function buildShareCard(){
       img.src=PROMO.qr;
     });
   }else{
-    // 纯分享模式：居中大字引导
+    // 纯分享模式：居中大字引导（底部卡片 906 ~ 1150）
     const hasUrl=!!PROMO.gameUrl;
     c.textAlign='center';
     c.fillStyle='#0e8a5f';
-    c.font='900 52px '+FONT;
-    c.fillText(PROMO.shareFoot,W/2,hasUrl?978:995);
+    fitText(c,PROMO.shareFoot,W/2,hasUrl?990:1006,W-140,'900',52,34);
     c.fillStyle='#5d7a6e';
-    c.font='500 27px '+FONT;
-    c.fillText(PROMO.shareSub,W/2,hasUrl?1030:1052);
+    fitText(c,PROMO.shareSub,W/2,hasUrl?1042:1062,W-120,'500',27,19);
     if(hasUrl){
       c.fillStyle='#ffffff';
-      roundRect(c,W/2-215,1058,430,56,28);c.fill();
+      roundRect(c,W/2-215,1068,430,54,27);c.fill();
       c.strokeStyle='#a9e0c4';c.lineWidth=2;
-      roundRect(c,W/2-215,1058,430,56,28);c.stroke();
+      roundRect(c,W/2-215,1068,430,54,27);c.stroke();
       c.fillStyle='#0e8a5f';
       c.font='700 28px '+FONT;
-      c.fillText(PROMO.gameUrl,W/2,1095);
+      c.fillText(PROMO.gameUrl,W/2,1104);
     }
     return Promise.resolve(cv.toDataURL('image/png'));
   }
+}
+
+/* 自动缩字号，保证一行放得下 —— 宁可字小一点，也不能被截断 */
+function fitText(c,text,x,y,maxW,weight,baseSize,minSize,fontStack){
+  const stack=fontStack||FONT;
+  let size=baseSize;
+  c.textAlign='center';
+  for(;;){
+    c.font=weight+' '+size+'px '+stack;
+    if(c.measureText(text).width<=maxW||size<=minSize)break;
+    size-=2;
+  }
+  c.fillText(text,x,y);
+  return size;
 }
 
 function wrapText(c,text,x,y,maxW,lineH,maxLines){
