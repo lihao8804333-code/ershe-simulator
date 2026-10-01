@@ -412,12 +412,13 @@ function newGame(){
     total:{rev:0,cost:0,deals:0,fakeCaught:0,fakeSold:0,fakeTorched:0,viral:0,ads:0,
            liveRev:0,liveFee:0,liveSold:0,liveReturned:0,fairBuy:0,fairDump:0,dumpRev:0,refund:0,
            branchRev:0,branchCost:0,warSpend:0,regionWins:0},
-    over:false,tab:'inv',started:true
+    over:false,tab:'inv',started:true,tut:false,visits:{}
   };
   S.staff.push(mkStaff('buyer',3));
   S.staff.push(mkStaff('appraiser',2));
   S.staff.push(mkStaff('care',2));
   S.staff.push(mkStaff('sales',3));
+  S.tut=!tutorDone();   // 第一次玩才显示阶段提示
   log('🏪 门店开业！启动资金 '+money(S.cash),'gold');
   log(`⚔️ 本区盘踞着老对手「${S.rival.name}」（${S.rival.boss}），眼下他占了上风。`,'warn');
   startDay();
@@ -948,6 +949,7 @@ function startDay(){
   }
   genOffers();
   S.phase='collect';
+  noteVisit('collect');
   render();
 }
 
@@ -1223,7 +1225,7 @@ function actTorch(id){
 }
 
 /* ---------------- 阶段推进 ---------------- */
-function enterPhase(p){S.phase=p;if(p==='sell')genCustomers();if(p==='settle')doSettle();render();}
+function enterPhase(p){S.phase=p;noteVisit(p);if(p==='sell')genCustomers();if(p==='settle')doSettle();render();}
 
 function doSettle(){
   // 派驻分店的员工工资由分店自己出，不重复计入老店
@@ -1392,6 +1394,96 @@ function renderTitle(){
 }
 
 /* ============================================================
+   新手引导
+   从短视频点进来的人不知道这游戏怎么玩，所以第一次开局先讲三屏，
+   之后每个阶段头两次进入时再给一条针对性提示。
+   ============================================================ */
+const TUTOR_KEY='ershe_tutor_seen';
+const tutorDone=function(){ try{return localStorage.getItem(TUTOR_KEY)==='1';}catch(e){return true;} };
+const setTutorDone=function(){ try{localStorage.setItem(TUTOR_KEY,'1');}catch(e){} };
+
+const TUTOR_SLIDES=[
+  {ic:'🎯',t:'你的目标',
+   body:'<p>你盘下一间 40 平的二手奢侈品店，手里有 <b class="gold-t">¥500,000</b>。</p>'+
+        '<p>经营 <b>30 天</b>，最后按净资产评级：</p>'+
+        '<div style="display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 4px">'+
+          '<span class="chip" style="background:#eef4f1;color:#5d7a6e">🥲 勉强糊口</span>'+
+          '<span class="chip" style="background:#eef4f1;color:#2563eb">🙂 小有成就</span>'+
+          '<span class="chip" style="background:#ddf5e7;color:#0b7a4f">😎 二奢新贵</span>'+
+          '<span class="chip" style="background:#f3e8ff;color:#7c3aed">🤑 行业大佬</span>'+
+          '<span class="chip" style="background:#fdf1d6;color:#a16207">👑 二奢之王</span>'+
+        '</div>'+
+        '<p class="tiny muted">大多数人第一把只能到「勉强糊口」</p>'},
+
+  {ic:'📋',t:'每天怎么玩',
+   body:'<p>每天 5~7 个阶段，跟着流程点就行：</p>'+
+        '<div style="margin:12px 0">'+
+          '<div style="padding:8px 0;border-bottom:1px dashed var(--line)"><b>① 收货</b> <span class="muted">— 卖家上门送货，你得砍价</span></div>'+
+          '<div style="padding:8px 0;border-bottom:1px dashed var(--line)"><b>② 护理</b> <span class="muted">— 翻新品相，卖得更贵</span></div>'+
+          '<div style="padding:8px 0;border-bottom:1px dashed var(--line)"><b>③ 投流</b> <span class="muted">— 投抖音广告拉客人进店</span></div>'+
+          '<div style="padding:8px 0;border-bottom:1px dashed var(--line)"><b>④ 卖货</b> <span class="muted">— 客户出价，可以谈价</span></div>'+
+          '<div style="padding:8px 0"><b>⑤ 结算</b> <span class="muted">— 扣工资和房租</span></div>'+
+        '</div>'+
+        '<p class="tiny muted">（每 5 天有「包展」，不定期有「直播专场」）</p>'},
+
+  {ic:'⚠️',t:'三条铁律',
+   body:'<div class="note warn" style="margin:10px 0"><b>一、不砍价就是亏钱</b><br>'+
+          '<span class="tiny">卖家开价通常<b>高于</b>市场售价。点「💬 压价」砍下来才有利润，砍价深度看回收师技能。</span></div>'+
+        '<div class="note warn" style="margin:10px 0"><b>二、假货宁可销毁</b><br>'+
+          '<span class="tiny">市面上约 16% 是高仿。明知是假还卖，被识破要退款 + 赔偿 + 声望暴跌。</span></div>'+
+        '<div class="note warn" style="margin:10px 0"><b>三、现金不能变负</b><br>'+
+          '<span class="tiny">一旦变成负数就直接破产出局。直播退货是<b>延迟扣款</b>的，最容易在这里翻车。</span></div>'}
+];
+
+let tutorStep=0;
+function showTutorial(step){
+  tutorStep=Math.max(0,Math.min(TUTOR_SLIDES.length-1,step));
+  const s=TUTOR_SLIDES[tutorStep];
+  const last=tutorStep===TUTOR_SLIDES.length-1;
+  const e=document.getElementById('tutorMask');if(e)e.remove();
+  const m=document.createElement('div');
+  m.className='mask';m.id='tutorMask';
+  m.innerHTML='<div class="modal" style="max-width:480px">'+
+    '<div style="text-align:center;font-size:44px;line-height:1;margin-bottom:6px">'+s.ic+'</div>'+
+    '<h2 style="text-align:center;letter-spacing:1px">'+s.t+'</h2>'+
+    '<div style="margin-top:16px">'+s.body+'</div>'+
+    '<div style="display:flex;align-items:center;gap:6px;margin:22px 0 16px">'+
+      TUTOR_SLIDES.map(function(_,i){
+        return '<div style="flex:1;height:4px;border-radius:4px;background:'+(i<=tutorStep?'var(--brand)':'var(--line)')+'"></div>';
+      }).join('')+
+    '</div>'+
+    '<div style="display:flex;gap:10px">'+
+      (tutorStep>0?'<button class="btn ghost" style="flex:1" onclick="showTutorial('+(tutorStep-1)+')">上一步</button>':'')+
+      '<button class="btn gold" style="flex:2" onclick="'+(last?'finishTutorial()':'showTutorial('+(tutorStep+1)+')')+'">'+
+        (last?'开 始 经 营':'下一步')+'</button>'+
+    '</div>'+
+    '<div style="text-align:center;margin-top:12px">'+
+      '<button class="btn ghost sm" onclick="finishTutorial()">跳过引导</button>'+
+    '</div>'+
+  '</div>';
+  document.body.appendChild(m);
+}
+function finishTutorial(){
+  const e=document.getElementById('tutorMask');if(e)e.remove();
+  setTutorDone();
+  track('tutorial_done',{step:tutorStep});
+  if(S&&S.started&&!S.over)render();
+}
+
+/* 阶段内的针对性提示：一个阶段头两次进入时显示 */
+function tut(key,html){
+  if(!S||!S.tut)return '';
+  const v=(S.visits&&S.visits[key])||0;
+  if(v>2)return '';
+  return '<div class="note good" style="margin-bottom:12px">'+html+'</div>';
+}
+function noteVisit(p){
+  if(!S)return;
+  if(!S.visits)S.visits={};
+  S.visits[p]=(S.visits[p]||0)+1;
+}
+
+/* ============================================================
    存档 —— 解决「玩到一半退出，进度全丢」
    30 天的局要玩十几分钟，手机上切出去回个微信就可能被系统回收，
    所以状态变化时自动存一次，退出后可以继续。
@@ -1471,6 +1563,7 @@ function startGame(){
   __overTracked=false;
   track('game_start');
   newGame();
+  if(!tutorDone())showTutorial(0);   // 第一次玩先讲三屏
 }
 function showHelp(){
   if(document.getElementById('helpMask'))return;
@@ -1538,8 +1631,9 @@ function showHelp(){
     </ul>
     <h3>胜负</h3>
     <p>第一幕 30 天，按净资产评级；市占率过半可进入第二幕连锁扩张。<b>现金变负数直接破产出局</b>（退货退款和分店亏损都可能击穿现金流）。</p>
-    <div style="text-align:center;margin-top:22px">
+    <div style="text-align:center;margin-top:22px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
       <button class="btn gold" style="padding:11px 34px" onclick="document.getElementById('helpMask').remove()">知道了</button>
+      <button class="btn ghost" style="padding:11px 26px" onclick="document.getElementById('helpMask').remove();showTutorial(0)">重看新手指引</button>
     </div>
   </div>`;
   document.body.appendChild(m);
@@ -1601,6 +1695,7 @@ function stageFair(){
     <br><b class="gold-t">甩货</b>可以一次性清空库存，即时到账、不受门店接待上限限制，代价是价格只有市价的 ${Math.round(FAIR_DUMP_MUL*100)}%。</div>`;
 
   h+=`<div style="font-weight:800;font-size:13px;color:var(--brand);margin:14px 0 8px">🛒 扫货区 · 批发价约为市场售价的 72%</div>`;
+  h+=tut('fair','💡 展会扫货 <b>比砍价还便宜</b>，但现场 <b>不能验货也不能砍价</b>，假货率更高。租展位还能一次性甩货清库存，代价是价格只有市价 58%。');
   h+=S.fairLots.map(lotHTML).join('');
   h+=`<div class="tiny muted" style="margin-bottom:6px">回收师 ${staffOf('buyer').length} 人 · 今天最多拿 ${cap} 件 · 已拿 ${bought} 件</div>`;
 
@@ -1675,6 +1770,7 @@ function stageLive(){
   const avgRet=S.inventory.length?Math.round(S.inventory.reduce((a,it)=>a+liveReturnRate(it),0)/S.inventory.length*100):0;
   let h=`<div class="card">
     <div class="card-h"><span>📹 直播带货专场</span><span class="tag">已选 ${picks.length}/${cap} 件</span></div>
+    ${tut('live','💡 直播能卖出 <b>远高于门店的价格</b>，但退货率很高，而且 <b>退款是 1~3 天后才扣的</b>。钱花出去了退款还在路上，就会击穿现金流。')}
     <div class="note warn">直播能卖出远高于门店的价格 —— 但<b>退货率高</b>，货款可能在一到三天后被退回去。
     如果那笔钱已经花掉了，你的现金流会当场断裂。假货上直播基本必被送检。</div>
     <div style="font-weight:800;font-size:13px;color:var(--brand);margin:12px 0 8px">① 选投入档位</div>`;
@@ -1746,7 +1842,8 @@ function stageLiveResult(){
 function stageCollect(){
   const pending=S.offers.filter(o=>o.status==='pending').length;
   let h=`<div class="card">
-    <div class="card-h"><span>🎒 收货台 · 第 ${S.day} 天</span><span class="tag">待处理 ${pending}</span></div>`;
+    <div class="card-h"><span>🎒 收货台 · 第 ${S.day} 天</span><span class="tag">待处理 ${pending}</span></div>
+    ${tut('collect','💡 <b>卖家开价通常高于市场售价</b>，直接收多半是亏的。点 <b>💬 压价</b> 砍下来才有利润 —— 砍价深度看 <b>回收师技能</b>。砍价失败他可能直接拎包走人。')}`;
   if(S.event)h+=`<div class="note warn">${S.event.ic} <b>${S.event.title}</b>：${S.event.desc}<br><span class="tiny">→ ${S.event.eff}</span></div>`;
   if(S.offers.length===0)h+=`<div class="empty"><span class="e">📭</span>今天没有人上门送货<br><span class="tiny">多招几个回收师，货源会更充足</span></div>`;
   h+=S.offers.map(offerHTML).join('');
@@ -1828,6 +1925,7 @@ function stageCare(){
   const cap=careCapacity(),used=S.daily.care;
   let h=`<div class="card">
     <div class="card-h"><span>🧴 护理工坊</span><span class="tag">今日名额 ${used}/${cap}</span></div>
+    ${tut('care','💡 护理能 <b>提升品相</b>，品相越好卖得越贵。每个包只能护理一次，名额由护理师人数决定。')}
     <div class="note tiny">护理能提升品相（售价上涨约 8%~12%）。护理费为公价的 2%，每个包只能护理一次。</div>`;
   if(staffOf('care').length===0)h+=`<div class="empty"><span class="e">🚫</span>没有护理师，无法护理</div>`;
   const list=S.inventory.filter(it=>it.careUsed<1);
@@ -1858,6 +1956,7 @@ function stageAd(){
   const cap=salesCapacity();
   let h=`<div class="card">
     <div class="card-h"><span>📱 抖音投流 · 获客引擎</span><span class="tag">粉丝 ${wshort(S.fans)}</span></div>
+    ${tut('ad','💡 投广告把人拉进店。<b>预算要和门店接待能力匹配</b> —— 超出的客流会白白流失，招了销售才能接更多客。每次投放有 8% 概率出爆款视频。')}
     <div class="note">自然流量每天带来约 <b>${organic}</b> 位到店客户。投广告能立刻拉来新客，并把粉丝沉淀成长期资产。
     <br>⚠️ 门店接待上限 <b>${cap} 人/天</b>（由销售人数决定），超出的客流会白白流失。</div>`;
   if(S.adPenalty<1)h+=`<div class="note warn">📉 平台限流中：今日广告效果打 45 折</div>`;
@@ -1881,7 +1980,8 @@ function stageAd(){
 
 function stageSell(){
   let h=`<div class="card">
-    <div class="card-h"><span>💼 门店营业</span><span class="tag">到店 ${S.customers.length} 人</span></div>`;
+    <div class="card-h"><span>💼 门店营业</span><span class="tag">到店 ${S.customers.length} 人</span></div>
+    ${tut('sell','💡 客户出价有高有低。<b>低于你的成本就点「谈价」</b>，谈不成再拒绝。没鉴定过的货卖出去，有被退货索赔的风险。')}`;
   if(S.adResult)h+=`<div class="note ${S.adResult.viral?'good':''}">
     📱 今日投流 ${money(S.adResult.budget)} · 涨粉 <b>${S.adResult.gained}</b>${S.adResult.viral?' 🔥爆款':''} · 广告带来 ${S.adResult.cust} 位客户</div>`;
   if(S.lostCustomers>0)h+=`<div class="note warn">😢 有 <b>${S.lostCustomers}</b> 位客户因为没人接待，转头去了隔壁店。招销售可以提升日接待上限（当前 ${salesCapacity()} 人/天）。</div>`;
@@ -1935,7 +2035,7 @@ function stageSettle(){
   const gross=d.rev;
   const out=d.ad+d.wage+d.rent;
   const net=gross-out;
-  return `<div class="card">
+  return `${tut('settle','💡 每天要扣 <b>工资和房租</b>。现金一旦变成负数，就直接 <b>破产出局</b>。')}<div class="card">
     <div class="card-h"><span>🧾 第 ${S.day} 天 · 日结账单</span><span class="tag">${S.act>=2?('已垄断 '+S.total.regionWins+'/'+totalRegions()+' 区域'):(S.day<S.maxDay?'还有 '+(S.maxDay-S.day)+' 天':'最后一天')}</span></div>
     <div class="kv"><span>💰 门店销售回款</span><b class="pos">+${money(gross)}</b></div>
     ${d.liveRev>0?`<div class="kv"><span>📹 直播专场回款</span><b class="pos">+${money(d.liveRev)}</b></div>`:''}
@@ -2474,6 +2574,10 @@ function showShareCard(){
       '<button class="btn ghost" style="flex:1" onclick="document.getElementById(\'shareMask\').remove()">关闭</button>'+
       '</div>'+
       '<div class="tiny muted" style="margin-top:12px">微信里请长按图片 → 保存到相册</div>'+
+      '<div style="margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)">'+
+      '<div class="tiny muted" style="margin-bottom:8px">换个思路，这局能打得更好吗？</div>'+
+      '<button class="btn gold" style="padding:11px 30px" onclick="document.getElementById(\'shareMask\').remove();startGame()">🔄 再 来 一 局</button>'+
+      '</div>'+
       '</div>';
     document.body.appendChild(m);
   });
@@ -2586,6 +2690,7 @@ window.closeBranch=closeBranch;window.startAct2=startAct2;window.forceEnd=forceE
 window.openBranch=openBranch;window.myPower=myPower;window.RMAP=RMAP;
 window.showManagerPick=showManagerPick;window.doAssign=doAssign;
 window.showShareCard=showShareCard;window.ctaClick=ctaClick;
+window.showTutorial=showTutorial;window.finishTutorial=finishTutorial;
 window.resumeGame=resumeGame;window.saveGame=saveGame;window.loadGame=loadGame;window.clearSave=clearSave;window.saveInfo=saveInfo;window.buildShareCard=buildShareCard;window.PROMO=PROMO;window.track=track;
 </script>
 </body>
