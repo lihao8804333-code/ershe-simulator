@@ -323,30 +323,40 @@ const COMPETE_ACTIONS=[
 ];
 
 /* ============================================================
-   推广配置 —— 改这里就行，不用动其它代码
+   分享配置 —— 改这里就行，不用动其它代码
+
+   当前默认：纯分享模式
+     整局玩完会生成一张成绩战报图，方便发朋友圈/群里晒，
+     不带任何商业引导。
    ============================================================ */
 const PROMO={
-  /* 你的微信/企微二维码。
-     三种填法：
-       1) 留空 ''                —— 战报图不画二维码（先跑起来看看效果）
-       2) 相对路径 './qr.png'    —— 把 qr.png 放进 deploy 文件夹一起上传（推荐，最省事）
-       3) data:image/png;base64,xxxx —— 把二维码转成 base64 内嵌，保持单文件
-     ⚠️ 不要填外部网址，微信里可能加载不出来 */
+  /* ---------- 战报图 ---------- */
+
+  /* 战报图上方那句引导语，支持 {rank} {net} {days} 三个变量 */
+  hookLine:'我 {days} 天做到「{rank}」，净资产 {net}\n你能到哪一档？',
+
+  /* 战报图底部大白字 */
+  shareFoot:'你也来试试',
+
+  /* 战报图底部小灰字 */
+  shareSub:'看你能把 50 万滚成什么样',
+
+  /* 可选：战报图底部显示游戏网址（留空就不显示）
+     填了之后别人看到图就知道去哪玩，传播效率高很多 */
+  gameUrl:'',
+
+  /* ---------- 以下都是商业获客用的，纯分享就留空 ---------- */
+
+  /* 微信/企微二维码：留空 = 不画；
+     也可以填 './qr.png' 或 'data:image/png;base64,xxx'（用 set-qr.ps1 自动转） */
   qr:'',
+  qrLabel:'扫码加微信',
 
-  /* 二维码旁边的说明 */
-  qrLabel:'扫码 · 免费估价',
-
-  /* 结算页的转化卡片 */
-  ctaTitle:'你的包，现在值多少钱？',
-  ctaDesc:'专业估价师 1 对 1 免费估价<br>上门回收 · 当场打款 · 全国包邮',
-  ctaBtn:'💬 免费估价',
-
-  /* 点击按钮后弹出的提示（微信里不能直接跳转加好友，所以引导扫码） */
-  ctaTip:'长按识别下方二维码，添加估价师微信',
-
-  /* 战报图底部的引导语 —— 这句决定了别人为什么要点进来 */
-  hookLine:'我 30 天做到 {rank}，净资产 {net}\n你的包值多少？来测一测',
+  /* 结算页转化卡片：ctaTitle 留空 = 整块不显示 */
+  ctaTitle:'',
+  ctaDesc:'',
+  ctaBtn:'',
+  ctaTip:'',
 
   /* 可选：埋点上报地址。留空则只在控制台打印，不发请求 */
   trackerUrl:''
@@ -2257,32 +2267,32 @@ function buildShareCard(){
   c.fillStyle='#12261e';
   c.font='700 34px '+FONT;
   const hook=PROMO.hookLine
-    .replace('{rank}',R.r).replace('{net}',money(nw));
+    .replace('{rank}',R.r).replace('{net}',money(nw)).replace('{days}',S.day);
   wrapText(c,hook.split('\n')[0],W/2,800,W-140,44,1);
   c.fillStyle='#5d7a6e';
   c.font='500 28px '+FONT;
   const l2=hook.split('\n')[1]||'';
   if(l2)c.fillText(l2,W/2,850);
 
-  // 底部二维码区
+  // 底部区域
   c.fillStyle='#ffffff';
   roundRect(c,36,890,W-72,250,28);c.fill();
 
-  const qx=80,qy=928,qs=174;
-  c.fillStyle='#f6fbf8';
-  roundRect(c,qx,qy,qs,qs,16);c.fill();
-
-  function drawLabel(){
-    c.textAlign='left';
-    c.fillStyle='#0e8a5f';
-    c.font='900 40px '+FONT;
-    c.fillText(PROMO.qrLabel,qx+qs+40,qy+72);
-    c.fillStyle='#5d7a6e';
-    c.font='500 25px '+FONT;
-    c.fillText('专业估价 · 上门回收 · 当场打款',qx+qs+40,qy+118);
-  }
-
+  /* 只有配了二维码才画二维码（商业用途）；
+     纯分享模式就在这块地方放一句「你也来试试」 */
   if(PROMO.qr){
+    const qx=80,qy=928,qs=174;
+    c.fillStyle='#f6fbf8';
+    roundRect(c,qx,qy,qs,qs,16);c.fill();
+    const drawLabel=function(){
+      c.textAlign='left';
+      c.fillStyle='#0e8a5f';
+      c.font='900 40px '+FONT;
+      c.fillText(PROMO.qrLabel,qx+qs+40,qy+80);
+      c.fillStyle='#5d7a6e';
+      c.font='500 25px '+FONT;
+      c.fillText(PROMO.shareSub,qx+qs+40,qy+126);
+    };
     // 二维码可能是 data: 也可能是相对路径，都要等图加载完再导出
     return new Promise(function(resolve){
       const img=new Image();
@@ -2302,12 +2312,24 @@ function buildShareCard(){
       img.src=PROMO.qr;
     });
   }else{
-    // 没配二维码就画个占位框，方便先看效果
-    c.strokeStyle='#c6dcd1';c.lineWidth=3;c.setLineDash([10,8]);
-    roundRect(c,qx+10,qy+10,qs-20,qs-20,12);c.stroke();c.setLineDash([]);
-    c.textAlign='center';c.fillStyle='#93a89f';c.font='500 22px '+FONT;
-    c.fillText('在这里放二维码',qx+qs/2,qy+qs/2+8);
-    drawLabel();
+    // 纯分享模式：居中大字引导
+    const hasUrl=!!PROMO.gameUrl;
+    c.textAlign='center';
+    c.fillStyle='#0e8a5f';
+    c.font='900 52px '+FONT;
+    c.fillText(PROMO.shareFoot,W/2,hasUrl?978:995);
+    c.fillStyle='#5d7a6e';
+    c.font='500 27px '+FONT;
+    c.fillText(PROMO.shareSub,W/2,hasUrl?1030:1052);
+    if(hasUrl){
+      c.fillStyle='#ffffff';
+      roundRect(c,W/2-215,1058,430,56,28);c.fill();
+      c.strokeStyle='#a9e0c4';c.lineWidth=2;
+      roundRect(c,W/2-215,1058,430,56,28);c.stroke();
+      c.fillStyle='#0e8a5f';
+      c.font='700 28px '+FONT;
+      c.fillText(PROMO.gameUrl,W/2,1095);
+    }
     return Promise.resolve(cv.toDataURL('image/png'));
   }
 }
@@ -2350,7 +2372,7 @@ function showShareCard(){
     m.className='mask';m.id='shareMask';
     m.innerHTML='<div class="modal" style="max-width:420px;text-align:center">'+
       '<h2 style="letter-spacing:1px">你的经营战报</h2>'+
-      '<p style="margin-bottom:14px">长按图片保存，或截图分享给朋友</p>'+
+      '<p style="margin-bottom:14px">长按图片保存，或截图发给朋友</p>'+
       '<img src="'+dataUrl+'" style="width:100%;border-radius:14px;border:1px solid var(--line);box-shadow:0 12px 30px -14px rgba(16,60,42,.3)"/>'+
       '<div style="display:flex;gap:10px;margin-top:16px">'+
       '<a class="btn gold" style="flex:1;text-decoration:none;padding:12px" href="'+dataUrl+'" download="二奢模拟器-战报.png">⬇️ 下载图片</a>'+
@@ -2418,7 +2440,7 @@ function renderOver(){
     </div>
 
     <div style="margin:28px 0 10px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-      <button class="btn gold" style="padding:14px 44px;font-size:15px" onclick="showShareCard()">📸 生成战报图，晒一晒</button>
+      <button class="btn gold" style="padding:14px 44px;font-size:15px" onclick="showShareCard()">📸 生成战报图</button>
       <button class="btn ghost" style="padding:14px 30px;font-size:15px" onclick="startGame()">再 来 一 局</button>
     </div>
 
