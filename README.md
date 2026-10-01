@@ -5,39 +5,17 @@
 
 单文件，没有依赖，没有后端。双击就能玩。
 
-## 改代码
-
-改 `二奢模拟器.html`。`deploy/index.html` 是它的副本，发布用的，别直接改那边。
-
-改完记得同步一次，不然线上还是旧版本：
-
-```
-powershell -ExecutionPolicy Bypass -File .\sync.ps1
-```
-
-看到 `[OK] Synced` 就成了，它会顺便校验两边的 SHA256 是否一致。然后：
-
-```
-git add .
-git commit -m "改了什么"
-git push
-```
-
-Netlify 关联了仓库的话，push 完自动部署。
-
 ## 目录
 
 ```
 二奢模拟器.html     源文件，改这个
-deploy/            发布目录，只有这里面的东西会上线
-  index.html       源文件的副本
-  _headers         响应头配置
-sync.ps1           源文件同步到 deploy/
-set-qr.ps1         把二维码内嵌进游戏（可选）
-netlify.toml       告诉 Netlify 发布目录是 deploy/
+deploy/            
+  index.html       
+  _headers         
+sync.ps1          
+set-qr.ps1         
+netlify.toml       
 ```
-
-`deploy/` 里的东西全都会公开访问到，所以里面只放游戏本身。
 
 ## 分享战报图
 
@@ -75,6 +53,4 @@ const PROMO={
 
 游戏用 localStorage 存进度，中途退出可以接着玩。存档带版本号和完整性校验，结构对不上会自动丢弃，不会白屏。
 
-**改文案时注意 emoji。** 现在用的都是 Unicode 10.0 及以下的字符（2017 年前），
-Windows 7 都能正常显示。别引入 Unicode 11.0 以后的新 emoji —— 旧系统字体里没有，
-会渲染成一个方框。战报图有兜底逻辑，但结算页是普通 HTML，没兜底。
+
