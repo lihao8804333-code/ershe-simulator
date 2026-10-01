@@ -463,14 +463,27 @@ function appraiseRoll(truth){
   if(chance(0.78))return 'unsure';                      // 看走眼时，绝大多数会承认拿不准
   return truth==='genuine'?'superfake':'genuine';       // 极少数才会给出明确但错误的结论
 }
-/* 鉴定费：按公价算，封顶 200。
-   公价 1.4 万的小包 = 100，爱马仕这种大牌 = 190，都不会超过 200。
-   复检按 1.8 倍递增 —— 不递增的话玩家可以反复验，200 块买一个确定答案，
-   鉴定师技能和会诊加成也就没意义了。 */
+/* ============================================================
+   鉴定费分两种，对应两条路：
+
+     自家鉴定师  ¥100~200      准确率看培养（91%~100%）
+     花钱找人    ¥300~1250     100% 准确，按公价算
+
+   为什么花钱的那么贵？因为它是"不养人也能拿到确定答案"的价格，
+   定得跟养一个满级鉴定师的日薪（¥1250）差不多 —— 验得勤的话，
+   自己养人更划算；偶尔验一次，花钱找人更省事。
+
+   两种都按 1.8 倍递增复检费。
+   ============================================================ */
 function appraiseFee(retail,times){
   const base=Math.min(200,Math.max(100,Math.round(retail*0.0015/10)*10));
   return Math.round(base*Math.pow(1.8,times||0)/10)*10;
-}function appraiseLabel(res){
+}
+function extAppraiseFee(retail,times){
+  const base=Math.min(1250,Math.max(300,Math.round(retail*0.012/10)*10));
+  return Math.round(base*Math.pow(1.8,times||0)/10)*10;
+}
+function appraiseLabel(res){
   return res==='genuine'?'真品':res==='unsure'?'拿不准':res==='superfake'?'高仿':'假货';
 }
 /* "拿不准"不等于"已知是假" —— 判断已知假货时必须用它，不能直接比 !=='genuine' */
@@ -551,7 +564,7 @@ function mkFairLot(){
   let hint;
   if(chance(acc))hint=fake==='genuine'?'real':'fake';
   else hint=fake==='genuine'?(chance(0.5)?'fake':'unsure'):(chance(0.55)?'real':'unsure');
-  return {lid:S.uid++,brand:brand.name,model:model[0],retail,cond,fake,hint,ask,ask0:ask,
+  return {lid:S.uid++,brand:brand.name,model:model[0],retail,cond,fake,hint,ext:false,ask,ask0:ask,
           sellBase,status:'pending',msg:null};
 }
 function genFairLots(){
@@ -560,6 +573,21 @@ function genFairLots(){
   for(let i=0;i<n;i++)S.fairLots.push(mkFairLot());
 }
 function fairBoughtCount(){return S.fairLots.filter(l=>l.status==='bought').length;}
+
+/* 包展上花钱找人看：100% 准确。现场本来不验货，这是唯一的例外。 */
+function actFairAppraise(lid){
+  const l=S.fairLots.find(x=>x.lid===lid);
+  if(!l||l.status!=='pending'||l.ext)return;
+  const fee=extAppraiseFee(l.retail,0);
+  if(S.cash<fee){toast('现金不足支付鉴定费','#dc2626');return;}
+  S.cash-=fee;S.daily.cost+=fee;S.daily.fee+=fee;S.total.cost+=fee;
+  l.ext=true;
+  l.hint=l.fake==='genuine'?'real':'fake';      // 100% 准确
+  const ok=l.fake==='genuine';
+  log(`💰 包展上请人看了 ${l.brand} ${l.model}：${ok?'真品':(l.fake==='superfake'?'高仿':'假货')}（花费 ${money(fee)}）`,ok?'good':'warn');
+  toast(ok?'请人看过：真品 ✅':'请人看过：假货 ❌',ok?'#12a06e':'#dc2626');
+  render();
+}
 
 function actFairBuy(lid){
   const l=S.fairLots.find(x=>x.lid===lid);
@@ -1065,12 +1093,22 @@ function actOffer(oid,act){
     const fee=appraiseFee(o.retail,0);
     if(S.cash<fee){toast('现金不足支付鉴定费','#dc2626');return;}
     S.cash-=fee;S.daily.cost+=fee;S.daily.fee+=fee;S.total.cost+=fee;
-    o.appraised=true;
-    const res=appraiseRoll(o.fake);
-    o.appraiseResult=res;
+    o.appraised=true;o.appraiseResult=appraiseRoll(o.fake);
+    const res=o.appraiseResult;
     const label=res==='genuine'?'✅ 鉴定为真品':(res==='unsure'?'🤔 鉴定师拿不准':(res==='superfake'?'⚠️ 鉴定为高仿':'❌ 鉴定为假货'));
     o.msg=`🔍 支付鉴定费 ${money(fee)}，${label}`;
-    log(`🔍 鉴定 ${o.brand} ${o.model}：${appraiseLabel(res)}（花费 ${money(fee)}）`,res==='genuine'?'':'warn');
+    log(`🔍 自家鉴定 ${o.brand} ${o.model}：${appraiseLabel(res)}（花费 ${money(fee)}）`,res==='genuine'?'':'warn');
+    render();
+  }
+  else if(act==='appraiseExt'){
+    const fee=extAppraiseFee(o.retail,0);
+    if(S.cash<fee){toast('现金不足支付外部鉴定费','#dc2626');return;}
+    S.cash-=fee;S.daily.cost+=fee;S.daily.fee+=fee;S.total.cost+=fee;
+    o.appraised=true;o.appraiseExt=true;
+    o.appraiseResult=o.fake;                       // 花钱找人：100% 准确
+    const label=o.fake==='genuine'?'✅ 鉴定为真品':(o.fake==='superfake'?'⚠️ 鉴定为高仿':'❌ 鉴定为假货');
+    o.msg=`💰 支付外部鉴定费 ${money(fee)}，${label}`;
+    log(`💰 外部鉴定 ${o.brand} ${o.model}：${appraiseLabel(o.fake)}（花费 ${money(fee)}）`,o.fake==='genuine'?'':'warn');
     render();
   }
 }
@@ -1421,7 +1459,7 @@ function renderTitle(){
     </p>
     <div class="feat">
       <div><div class="fi">🎒</div><div class="ft">回收师</div><div class="fd">上门收货，初判真伪，帮你压价砍到卖家肉疼</div></div>
-      <div><div class="fi">🔍</div><div class="ft">鉴定师</div><div class="fd">花鉴定费买确定性。练满技能 + 满编队能到绝对准确</div></div>
+      <div><div class="fi">🔍</div><div class="ft">鉴定师</div><div class="fd">自家鉴定便宜但可能看走眼；花钱找人看贵，但绝对准</div></div>
       <div><div class="fi">💧</div><div class="ft">护理师</div><div class="fd">翻新提品相，售价直接上一个台阶</div></div>
       <div><div class="fi">💼</div><div class="ft">销售</div><div class="fd">接待客户，谈价加成，决定你能接多少客</div></div>
     </div>
@@ -1666,13 +1704,13 @@ function showHelp(){
     <ul>
       <li>市面上的货大约 <b>16%</b> 是高仿或假货。收进来卖出去，轻则被退货索赔，重则声望暴跌。</li>
       <li>光看外表分不出来。回收师的 <b>「初判」</b>（💚看真 / 🔴存疑 / 💛拿不准）只有 50%~86% 准，<b>只能当参考，不能当结论</b>。</li>
-      <li>拿不准就 <b>送鉴定</b> —— 花一笔鉴定费（100~200，按公价算），换一个准确得多的判断。</li>
-      <li>鉴定师 <b class="gold-t">开局就有 91% 准</b>。准确率 = <b>个人水平</b>（练技能，最高 96%）+ <b>会诊加成</b>（每多一位鉴定师 +2%）。</li>
+      <li>拿不准就<b>送鉴定</b>，两条路：<b>自家鉴定师</b>便宜（100~200），但准确率看培养；<b class="gold-t">花钱找人看</b>贵（300~1250，按公价），但 <b>100% 准确</b>。</li>
+      <li>自家鉴定师的准确率 = <b>个人水平</b>（练技能，最高 96%）+ <b>会诊加成</b>（每多一位 +2%）。开局 91%。</li>
       <li><b class="gold-t">技能练满 + 满编 3 人 = 100%，绝对准确。</b>这是练出来的，不是花钱买来的 —— 别指望开局那个就能万无一失。</li>
       <li>水平不够的鉴定师会直接说 <b>「拿不准」</b> —— 注意这不是"他判断是假货"，而是<b>他没能看出来</b>。换个再验一次就行。</li>
-      <li>收货台可以送检，收进来的货也可以在库存里补检。<b>复检费用每次翻 1.8 倍</b>，所以第一次就验准最划算。</li>
+      <li>收货台、库存、包展现场都能送检。<b>复检费用每次翻 1.8 倍</b>，第一次就验准最划算。</li>
       <li>没验过的货卖出去，有 <b>18%</b> 概率被客户识破索赔；明知是假还卖，风险升到 <b>34%</b>。</li>
-      <li>但鉴定师也不是 100% 准。<b class="gold-t">销毁不可撤销</b> —— 砸之前想清楚。</li>
+      <li>自家鉴定师不是 100% 准，花钱找人才是。<b class="gold-t">销毁不可撤销</b> —— 砸之前想清楚。</li>
     </ul>
     <h3>竞争对手与区域扩张</h3>
     <ul>
@@ -1753,7 +1791,7 @@ function stageFair(){
     <br><b class="gold-t">甩货</b>可以一次性清空库存，即时到账、不受门店接待上限限制，代价是价格只有市价的 ${Math.round(FAIR_DUMP_MUL*100)}%。</div>`;
 
   h+=`<div style="font-weight:800;font-size:13px;color:var(--brand);margin:14px 0 8px">🛒 扫货区 · 批发价约为市场售价的 72%</div>`;
-  h+=tut('fair','💡 展会扫货 <b>比砍价还便宜</b>，但现场 <b>不能验货也不能砍价</b>，假货率更高。租展位还能一次性甩货清库存，代价是价格只有市价 58%。');
+  h+=tut('fair','💡 展会扫货 <b>比砍价还便宜</b>，但现场 <b>不能砍价</b>，同行口碑只有 42~64% 准。拿不准就 <b>花钱找人看</b> —— 贵，但 100% 准。');
   h+=S.fairLots.map(lotHTML).join('');
   h+=`<div class="tiny muted" style="margin-bottom:6px">回收师 ${staffOf('buyer').length} 人 · 今天最多拿 ${cap} 件 · 已拿 ${bought} 件</div>`;
 
@@ -1800,10 +1838,13 @@ function lotHTML(l){
   const cond=CONDITIONS[l.cond];
   const mp=Math.round(l.sellBase*cond.mul);
   const margin=mp-l.ask;
-  const hm={real:['💚 同行说没问题','#ddf5e7','#0b7a4f'],
-            fake:['🔴 有人嘀咕是假的','#fde8e8','#b91c1c'],
-            unsure:['💛 说不好','#fdf1d6','#0e8a5f']}[l.hint]||['💛 说不好','#fdf1d6','#0e8a5f'];
+  const hm = l.ext
+    ? (l.hint==='real'?['💰 请人看过：真品','#ddf5e7','#0b7a4f']:['💰 请人看过：假货','#fde8e8','#b91c1c'])
+    : ({real:['💚 同行说没问题','#ddf5e7','#0b7a4f'],
+        fake:['🔴 有人嘀咕是假的','#fde8e8','#b91c1c'],
+        unsure:['💛 说不好','#fdf1d6','#0e8a5f']}[l.hint]||['💛 说不好','#fdf1d6','#0e8a5f']);
   const full=fairBoughtCount()>=fairCap();
+  const efee=extAppraiseFee(l.retail,0);
   return `<div class="deal">
     <div class="deal-top">
       <div><div class="deal-title" style="color:${b.color}">${b.ic} ${l.brand} <span style="color:var(--txt)">${l.model}</span></div>
@@ -1811,11 +1852,13 @@ function lotHTML(l){
       <div style="text-align:right"><div class="price">${money(l.ask)}</div><div class="tiny muted">批发价</div></div>
     </div>
     <div class="row" style="margin-bottom:8px"><span class="chip" style="background:${hm[1]};color:${hm[2]}">${hm[0]}</span>
-      <span class="chip" style="background:#eaf4ee;color:#5d7a6e">现场不验货</span></div>
+      <span class="chip" style="background:${l.ext?'#ddf5e7':'#eaf4ee'};color:${l.ext?'#0b7a4f':'#5d7a6e'}">${l.ext?'已请人验过':'现场不验货'}</span></div>
     <div class="kv"><span>预估市场售价</span><b>${money(mp)}</b></div>
     <div class="kv"><span>若为正品的毛利</span><b class="${margin>=0?'pos':'neg'}">${margin>=0?'+':''}${money(margin)}</b></div>
     <div style="margin-top:10px"><button class="btn gold block" onclick="actFairBuy(${l.lid})" ${full?'disabled':''}>
       ${full?'今天拿不动了':'🛒 收下 '+money(l.ask)}</button></div>
+    ${!l.ext?`<div style="margin-top:6px"><button class="btn block" onclick="actFairAppraise(${l.lid})" ${S.cash<efee?'disabled':''}>
+      💰 花钱找人看 ${money(efee)}<span class="tiny muted"> · 100% 准</span></button></div>`:''}
   </div>`;
 }
 
@@ -1930,6 +1973,7 @@ function offerHTML(o){
   const cond=CONDITIONS[o.cond];
   const mp=o.market||Math.round(o.sellBase*cond.mul);
   const fee=appraiseFee(o.retail,0);
+  const extFee=extAppraiseFee(o.retail,0);
   const margin=mp-o.ask;
   const hagP=clamp(0.35+bestSkill('buyer')*0.05+o.seller.haggle,0.08,0.92);
   // 砍价后能到多少（给玩家一个预期区间）
@@ -1977,8 +2021,11 @@ function offerHTML(o){
     ${o.msg?`<div class="note tiny">${o.msg}</div>`:''}
     <div class="grid2" style="margin-top:10px">
       <button class="btn gold" onclick="actOffer(${o.oid},'buy')">💰 直接收下${margin<0?' (亏)':''}</button>
-      <button class="btn" onclick="actOffer(${o.oid},'appraise')" ${o.appraised?'disabled':''}>🔍 送鉴定 ${money(fee)}</button>
       <button class="btn ${o.haggleUsed?'ghost':'gold'}" onclick="actOffer(${o.oid},'haggle')" ${o.haggleUsed?'disabled':''}>💬 压价（成功 ${Math.round(hagP*100)}%）</button>
+      ${staffOf('appraiser').length>0
+        ? `<button class="btn" onclick="actOffer(${o.oid},'appraise')" ${o.appraised?'disabled':''} title="自家鉴定师，准确率 ${Math.round(appraiseAcc()*100)}%">🔍 自家鉴定 ${money(fee)}</button>`
+        : `<button class="btn" disabled title="店里没有鉴定师">🔍 自家鉴定（无鉴定师）</button>`}
+      <button class="btn gold" onclick="actOffer(${o.oid},'appraiseExt')" ${o.appraised?'disabled':''} title="花钱找人看，100% 准确">💰 找人看 ${money(extFee)}</button>
       <button class="btn ghost" onclick="actOffer(${o.oid},'skip')">🙅 放弃</button>
     </div>
   </div>`;
@@ -2383,14 +2430,16 @@ function renderInv(){
     const mp=knowsFake?0:marketOf(it);
     const gain=mp-it.cost;
     const vfee=appraiseFee(it.retail,it.verifyCount);
+    const vext=extAppraiseFee(it.retail,it.verifyCount);
     return `<div class="inv" style="${knowsFake?'border-color:#f3b6b6;background:rgba(220,38,38,.05)':''}">
       <div class="ic" style="color:${b.color}">${b.ic}</div>
       <div style="flex:1;min-width:0">
         <div class="nm">${it.brand} ${it.model}</div>
         <div class="mt">${condOf(it).ic}${condOf(it).name} · 成本 ${money(it.cost)}
           ${!it.verified?'<span class="muted"> · 未鉴定</span>'
-            :(knowsFake?`<span class="neg"> · 已鉴定：${appraiseLabel(it.belief)}</span>`
-            :(isUnsure(it)?'<span class="muted"> · 已鉴定：拿不准</span>':'<span class="pos"> · 已鉴定：真品</span>'))}</div>
+            :(knowsFake?`<span class="neg"> · 已鉴定：${appraiseLabel(it.belief)}${it.verifiedExt?'（外部）':''}</span>`
+            :(isUnsure(it)?'<span class="muted"> · 已鉴定：拿不准</span>'
+            :`<span class="pos"> · 已鉴定：真品${it.verifiedExt?'（外部）':''}</span>`))}</div>
         ${knowsFake
           ?`<div class="mt neg">鉴定结论是假货 —— 只能销毁，或赌一把混卖</div>`
           :(isUnsure(it)
@@ -2399,12 +2448,14 @@ function renderInv(){
       </div>
       <div style="display:flex;flex-direction:column;gap:4px">
         ${knowsFake?`<button class="btn sm red" onclick="actTorch(${it.id})" title="砸掉它，换一点心安">销毁</button>`:''}
-        ${!it.verified?`<button class="btn sm" onclick="actVerify(${it.id})" title="送鉴定师复检，花费 ${money(vfee)}">鉴定</button>`
-          :`<button class="btn sm ghost" onclick="actVerify(${it.id})" title="换个鉴定师复检，花费 ${money(vfee)}">${isUnsure(it)?'再验一次':'复检'}</button>`}
+        ${staffOf('appraiser').length>0
+          ? `<button class="btn sm" onclick="actVerify(${it.id})" title="自家鉴定师复检，准确率 ${Math.round(appraiseAcc()*100)}%，花费 ${money(vfee)}">${it.verified?'复检':'鉴定'}</button>`
+          : `<button class="btn sm" disabled title="店里没有鉴定师">无鉴定师</button>`}
+        <button class="btn sm gold" onclick="actVerifyExt(${it.id})" title="花钱找人看，100% 准确，花费 ${money(vext)}">找人看</button>
       </div>
     </div>`;
   }).join('')+`</div>`;
-  h+=`<div class="tiny muted" style="margin-top:8px">未鉴定的货真伪未知，卖出时有 18% 概率因真伪纠纷被退货索赔。鉴定师水平不够时会说"拿不准"，换人再验一次即可。</div>`;
+  h+=`<div class="tiny muted" style="margin-top:8px">未鉴定的货真伪未知，卖出时有 18% 概率因真伪纠纷被退货索赔。自家鉴定师便宜但可能看走眼；<b>花钱找人看是 100% 准的，就是贵</b>。</div>`;
   h+=`</div>`;
   return h;
 }
@@ -2416,17 +2467,36 @@ function actVerify(id){
   const fee=appraiseFee(it.retail,it.verifyCount);
   if(S.cash<fee){toast('现金不足支付鉴定费','#dc2626');return;}
   S.cash-=fee;S.daily.cost+=fee;S.daily.fee+=fee;S.total.cost+=fee;
-  it.verifyCount++;it.verified=true;
+  it.verifyCount++;it.verified=true;it.verifiedExt=false;
   it.belief=appraiseRoll(it.fake);
   if(it.belief==='genuine'){
-    log(`🔍 鉴定 ${it.brand} ${it.model}：真品（花费 ${money(fee)}）`,'good');
+    log(`🔍 自家鉴定 ${it.brand} ${it.model}：真品（花费 ${money(fee)}）`,'good');
     toast('鉴定结论：真品 ✅','#12a06e');
   }else if(it.belief==='unsure'){
-    log(`🔍 鉴定 ${it.brand} ${it.model}：这家拿不准（花费 ${money(fee)}）`,'');
+    log(`🔍 自家鉴定 ${it.brand} ${it.model}：这家拿不准（花费 ${money(fee)}）`,'');
     toast('鉴定结论：拿不准 🤔','#5d7a6e');
   }else{
-    log(`🔍 鉴定 ${it.brand} ${it.model}：${it.belief==='superfake'?'高仿':'假货'}！（花费 ${money(fee)}）`,'warn');
+    log(`🔍 自家鉴定 ${it.brand} ${it.model}：${it.belief==='superfake'?'高仿':'假货'}！（花费 ${money(fee)}）`,'warn');
     toast('鉴定结论：'+(it.belief==='superfake'?'高仿':'假货')+' ❌','#dc2626');
+  }
+  render();
+}
+
+/* 库存内花钱找人看：100% 准确 */
+function actVerifyExt(id){
+  const it=S.inventory.find(x=>x.id===id);
+  if(!it)return;
+  const fee=extAppraiseFee(it.retail,it.verifyCount);
+  if(S.cash<fee){toast('现金不足支付外部鉴定费','#dc2626');return;}
+  S.cash-=fee;S.daily.cost+=fee;S.daily.fee+=fee;S.total.cost+=fee;
+  it.verifyCount++;it.verified=true;it.verifiedExt=true;
+  it.belief=it.fake;                                  // 花钱找人：100% 准确
+  if(it.belief==='genuine'){
+    log(`💰 外部鉴定 ${it.brand} ${it.model}：真品（花费 ${money(fee)}）`,'good');
+    toast('外部鉴定：真品 ✅','#12a06e');
+  }else{
+    log(`💰 外部鉴定 ${it.brand} ${it.model}：${it.belief==='superfake'?'高仿':'假货'}！（花费 ${money(fee)}）`,'warn');
+    toast('外部鉴定：'+(it.belief==='superfake'?'高仿':'假货')+' ❌','#dc2626');
   }
   render();
 }
@@ -2813,7 +2883,7 @@ window.startGame=startGame;window.showHelp=showHelp;window.enterPhase=enterPhase
 window.actOffer=actOffer;window.actCare=actCare;window.pickAd=pickAd;window.runAd=runAd;
 window.actCustomer=actCustomer;window.actTorch=actTorch;window.nextDay=nextDay;
 window.actVerify=actVerify;window.hire=hire;window.train=train;window.fire=fire;
-window.goNext=goNext;window.actFairBuy=actFairBuy;window.payBooth=payBooth;
+window.goNext=goNext;window.actFairAppraise=actFairAppraise;window.actVerifyExt=actVerifyExt;window.extAppraiseFee=extAppraiseFee;window.actFairBuy=actFairBuy;window.payBooth=payBooth;
 window.actFairDump=actFairDump;window.actFairDumpAll=actFairDumpAll;
 window.setLiveTier=setLiveTier;window.toggleLivePick=toggleLivePick;window.startLive=startLive;
 window.showMap=showMap;window.closeMap=closeMap;window.doOpenBranch=doOpenBranch;
