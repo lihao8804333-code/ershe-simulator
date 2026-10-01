@@ -22,9 +22,14 @@
 
 ## 上线
 
-已关联 Netlify，`git push` 即自动部署。
+在 Netlify 关联本仓库后，`git push` 即自动部署（步骤见 [deploy/部署说明.md](deploy/部署说明.md) 第九章）。
 
-手动部署见 [deploy/部署说明.md](deploy/部署说明.md)。
+也可以不进 Netlify 后台，直接用命令行发布：
+
+```powershell
+cd deploy
+netlify deploy --prod
+```
 
 ## 改完代码记得同步
 
