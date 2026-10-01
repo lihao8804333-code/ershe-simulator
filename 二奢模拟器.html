@@ -256,7 +256,7 @@ const BMAP={};BRANDS.forEach(b=>BMAP[b.name]=b);
 
 const ROLES={
   buyer:    {name:'回收师',ic:'🎒',desc:'带回货源 · 初判真伪 · 压价谈判'},
-  appraiser:{name:'鉴定师',ic:'🔍',desc:'专业鉴定 · 会诊加成，人越多越准'},
+  appraiser:{name:'鉴定师',ic:'🔍',desc:'专业鉴定 · 满配可到绝对准确'},
   care:     {name:'护理师',ic:'💧',desc:'翻新护理 · 提升品相与售价'},
   sales:    {name:'销售',  ic:'💼',desc:'接待客户 · 提升议价上限'}
 };
@@ -442,26 +442,29 @@ const trueLabel=it=>it.fake==='genuine'?'真品':(it.fake==='superfake'?'高仿'
 
    准确率由两部分组成：
      个人水平  bestSkill × 0.006    →  91% ~ 96%
-     会诊加成  (人数-1) × 0.010     →  每多一位 +1%，封顶 99.5%
+     会诊加成  (人数-1) × 0.020     →  每多一位 +2%
 
-   这样两个轴都有意义：光练技能最多 96%，光堆人也就 91% 起。
-   想摸到天花板，得同时把技能练满、并且养一个团队。
+   技能练满（10）+ 满编（3 人）= 100%，绝对准确。
+   这是有意设计的：绝对准确不是白给的，要先把人练出来。
+   光练技能到 96%，光堆人也只有 91% 起。
 
-   看走眼的少数情况里，绝大多数会诚实说"拿不准"，
+   没到满配时会看走眼，但绝大多数会诚实说"拿不准"，
    而不是自信地给出错误结论。一定要避免的是
    "花钱买了个错答案，系统还当场承认错了"。
    ============================================================ */
 function appraiseAcc(){
   const n=Math.max(1,staffOf('appraiser').length);
-  return clamp(0.90+bestSkill('appraiser')*0.006+(n-1)*0.017,0.90,0.995);
+  return clamp(0.90+bestSkill('appraiser')*0.006+(n-1)*0.020,0.90,1);
 }
 function appraiseRoll(truth){
-  if(chance(appraiseAcc()))return truth;
+  const acc=appraiseAcc();
+  if(acc>=1)return truth;                               // 满配：不做随机，绝对准确
+  if(chance(acc))return truth;
   if(chance(0.78))return 'unsure';                      // 看走眼时，绝大多数会承认拿不准
   return truth==='genuine'?'superfake':'genuine';       // 极少数才会给出明确但错误的结论
 }
 /* 鉴定费：按公价算，封顶 200。
-   公价 1.4 万的小包 = 100，百达翡丽级别的大牌 = 190，都不会超过 200。
+   公价 1.4 万的小包 = 100，爱马仕这种大牌 = 190，都不会超过 200。
    复检按 1.8 倍递增 —— 不递增的话玩家可以反复验，200 块买一个确定答案，
    鉴定师技能和会诊加成也就没意义了。 */
 function appraiseFee(retail,times){
@@ -1418,7 +1421,7 @@ function renderTitle(){
     </p>
     <div class="feat">
       <div><div class="fi">🎒</div><div class="ft">回收师</div><div class="fd">上门收货，初判真伪，帮你压价砍到卖家肉疼</div></div>
-      <div><div class="fi">🔍</div><div class="ft">鉴定师</div><div class="fd">花鉴定费买确定性。人多可以会诊，水平不够会说"拿不准"</div></div>
+      <div><div class="fi">🔍</div><div class="ft">鉴定师</div><div class="fd">花鉴定费买确定性。练满技能 + 满编队能到绝对准确</div></div>
       <div><div class="fi">💧</div><div class="ft">护理师</div><div class="fd">翻新提品相，售价直接上一个台阶</div></div>
       <div><div class="fi">💼</div><div class="ft">销售</div><div class="fd">接待客户，谈价加成，决定你能接多少客</div></div>
     </div>
@@ -1664,7 +1667,8 @@ function showHelp(){
       <li>市面上的货大约 <b>16%</b> 是高仿或假货。收进来卖出去，轻则被退货索赔，重则声望暴跌。</li>
       <li>光看外表分不出来。回收师的 <b>「初判」</b>（💚看真 / 🔴存疑 / 💛拿不准）只有 50%~86% 准，<b>只能当参考，不能当结论</b>。</li>
       <li>拿不准就 <b>送鉴定</b> —— 花一笔鉴定费（100~200，按公价算），换一个准确得多的判断。</li>
-      <li>鉴定师 <b class="gold-t">开局就有 91% 准</b>。准确率 = <b>个人水平</b>（练技能，最高 96%）+ <b>会诊加成</b>（每多一位鉴定师 +1%，最高 99.5%）。想更准，要么练人，要么加人。</li>
+      <li>鉴定师 <b class="gold-t">开局就有 91% 准</b>。准确率 = <b>个人水平</b>（练技能，最高 96%）+ <b>会诊加成</b>（每多一位鉴定师 +2%）。</li>
+      <li><b class="gold-t">技能练满 + 满编 3 人 = 100%，绝对准确。</b>这是练出来的，不是花钱买来的 —— 别指望开局那个就能万无一失。</li>
       <li>水平不够的鉴定师会直接说 <b>「拿不准」</b> —— 注意这不是"他判断是假货"，而是<b>他没能看出来</b>。换个再验一次就行。</li>
       <li>收货台可以送检，收进来的货也可以在库存里补检。<b>复检费用每次翻 1.8 倍</b>，所以第一次就验准最划算。</li>
       <li>没验过的货卖出去，有 <b>18%</b> 概率被客户识破索赔；明知是假还卖，风险升到 <b>34%</b>。</li>
@@ -2137,9 +2141,10 @@ function renderStaff(){
     if(list.length===0)h+=`<div class="tiny muted" style="padding:6px 0 4px">暂无${r.name}，${r.desc.split(' · ')[0]}相关操作不可用</div>`;
     /* 鉴定师的准确率有"会诊加成"，把当前值亮出来，玩家才知道多招人有什么用 */
     if(role==='appraiser'&&list.length>0){
-      const acc=Math.round(appraiseAcc()*100);
-      h+=`<div class="tiny muted" style="padding:2px 0 6px">当前会诊准确率 <b class="gold-t">${acc}%</b>`
-        + (list.length<3?` · 再招一位 <b>+1.7%</b>`:' · <span class="gold-t">已满编</span>')
+      const acc=appraiseAcc();
+      h+=`<div class="tiny muted" style="padding:2px 0 6px">当前会诊准确率 <b class="gold-t">${Math.round(acc*100)}%</b>`
+        + (acc>=1?' · <span class="gold-t">绝对准确</span>'
+                 :(list.length<3?` · 再招一位 <b>+2%</b>`:' · <span class="gold-t">已满编</span>'))
         + `</div>`;
     }
     list.forEach(s=>{
