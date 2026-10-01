@@ -460,7 +460,14 @@ function appraiseRoll(truth){
   if(chance(0.78))return 'unsure';                      // 看走眼时，绝大多数会承认拿不准
   return truth==='genuine'?'superfake':'genuine';       // 极少数才会给出明确但错误的结论
 }
-function appraiseLabel(res){
+/* 鉴定费：按公价算，封顶 200。
+   公价 1.4 万的小包 = 100，百达翡丽级别的大牌 = 190，都不会超过 200。
+   复检按 1.8 倍递增 —— 不递增的话玩家可以反复验，200 块买一个确定答案，
+   鉴定师技能和会诊加成也就没意义了。 */
+function appraiseFee(retail,times){
+  const base=Math.min(200,Math.max(100,Math.round(retail*0.0015/10)*10));
+  return Math.round(base*Math.pow(1.8,times||0)/10)*10;
+}function appraiseLabel(res){
   return res==='genuine'?'真品':res==='unsure'?'拿不准':res==='superfake'?'高仿':'假货';
 }
 /* "拿不准"不等于"已知是假" —— 判断已知假货时必须用它，不能直接比 !=='genuine' */
@@ -1052,7 +1059,7 @@ function actOffer(oid,act){
     render();
   }
   else if(act==='appraise'){
-    const fee=Math.max(500,Math.round(o.retail*0.015/100)*100);
+    const fee=appraiseFee(o.retail,0);
     if(S.cash<fee){toast('现金不足支付鉴定费','#dc2626');return;}
     S.cash-=fee;S.daily.cost+=fee;S.daily.fee+=fee;S.total.cost+=fee;
     o.appraised=true;
@@ -1656,7 +1663,7 @@ function showHelp(){
     <ul>
       <li>市面上的货大约 <b>16%</b> 是高仿或假货。收进来卖出去，轻则被退货索赔，重则声望暴跌。</li>
       <li>光看外表分不出来。回收师的 <b>「初判」</b>（💚看真 / 🔴存疑 / 💛拿不准）只有 50%~86% 准，<b>只能当参考，不能当结论</b>。</li>
-      <li>拿不准就 <b>送鉴定</b> —— 花一笔鉴定费（约公价的 1.5%），换一个准确得多的判断。</li>
+      <li>拿不准就 <b>送鉴定</b> —— 花一笔鉴定费（100~200，按公价算），换一个准确得多的判断。</li>
       <li>鉴定师 <b class="gold-t">开局就有 91% 准</b>。准确率 = <b>个人水平</b>（练技能，最高 96%）+ <b>会诊加成</b>（每多一位鉴定师 +1%，最高 99.5%）。想更准，要么练人，要么加人。</li>
       <li>水平不够的鉴定师会直接说 <b>「拿不准」</b> —— 注意这不是"他判断是假货"，而是<b>他没能看出来</b>。换个再验一次就行。</li>
       <li>收货台可以送检，收进来的货也可以在库存里补检。<b>复检费用每次翻 1.8 倍</b>，所以第一次就验准最划算。</li>
@@ -1918,7 +1925,7 @@ function offerHTML(o){
   const b=BMAP[o.brand];
   const cond=CONDITIONS[o.cond];
   const mp=o.market||Math.round(o.sellBase*cond.mul);
-  const fee=Math.max(500,Math.round(o.retail*0.015/100)*100);
+  const fee=appraiseFee(o.retail,0);
   const margin=mp-o.ask;
   const hagP=clamp(0.35+bestSkill('buyer')*0.05+o.seller.haggle,0.08,0.92);
   // 砍价后能到多少（给玩家一个预期区间）
@@ -2370,7 +2377,7 @@ function renderInv(){
     const knowsFake=isKnownFake(it);
     const mp=knowsFake?0:marketOf(it);
     const gain=mp-it.cost;
-    const vfee=Math.round(Math.max(500,it.retail*0.015)*Math.pow(1.8,it.verifyCount)/100)*100;
+    const vfee=appraiseFee(it.retail,it.verifyCount);
     return `<div class="inv" style="${knowsFake?'border-color:#f3b6b6;background:rgba(220,38,38,.05)':''}">
       <div class="ic" style="color:${b.color}">${b.ic}</div>
       <div style="flex:1;min-width:0">
@@ -2401,7 +2408,7 @@ function renderInv(){
 function actVerify(id){
   const it=S.inventory.find(x=>x.id===id);
   if(!it)return;
-  const fee=Math.round(Math.max(500,it.retail*0.015)*Math.pow(1.8,it.verifyCount)/100)*100;
+  const fee=appraiseFee(it.retail,it.verifyCount);
   if(S.cash<fee){toast('现金不足支付鉴定费','#dc2626');return;}
   S.cash-=fee;S.daily.cost+=fee;S.daily.fee+=fee;S.total.cost+=fee;
   it.verifyCount++;it.verified=true;
@@ -2811,7 +2818,7 @@ window.openBranch=openBranch;window.myPower=myPower;window.RMAP=RMAP;
 window.showManagerPick=showManagerPick;window.doAssign=doAssign;
 window.showShareCard=showShareCard;window.ctaClick=ctaClick;
 window.showTutorial=showTutorial;window.finishTutorial=finishTutorial;window.CARD_VER=CARD_VER;window.emojiWorks=emojiWorks;
-window.render=render;window.appraiseRoll=appraiseRoll;window.appraiseAcc=appraiseAcc;window.appraiseLabel=appraiseLabel;window.isKnownFake=isKnownFake;window.isUnsure=isUnsure;
+window.render=render;window.appraiseRoll=appraiseRoll;window.appraiseFee=appraiseFee;window.appraiseAcc=appraiseAcc;window.appraiseLabel=appraiseLabel;window.isKnownFake=isKnownFake;window.isUnsure=isUnsure;
 window.resumeGame=resumeGame;window.saveGame=saveGame;window.loadGame=loadGame;window.clearSave=clearSave;window.saveInfo=saveInfo;window.buildShareCard=buildShareCard;window.PROMO=PROMO;window.track=track;
 </script>
 </body>
