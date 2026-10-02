@@ -57,7 +57,7 @@ set-qr.ps1           将二维码写入分享配置
 
 ```js
 const PROMO = {
-  hookLine: '我 {days} 天做到「{rank}」，净资产 {net}\\n你能到哪一档？',
+  hookLine: '我 {days} 天做到「{rank}」，净资产 {net}\n你能到哪一档？',
   shareFoot: '你也来试试',
   shareSub: '看你能把 50 万滚成什么样',
   gameUrl: 'https://ershe-simulator.netlify.app',
