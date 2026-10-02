@@ -403,7 +403,7 @@ function newGame(){
     uid:1,day:1,maxDay:30,cash:500000,rep:50,fans:0,
     staff:[],inventory:[],log:[],phase:'collect',
     offers:[],customers:[],adBudget:0,adResult:null,
-    bonusCustomer:0,bonusOffer:0,adPenalty:1,hotBrand:null,fakeWave:false,lostCustomers:0,
+    bonusCustomer:0,bonusOffer:0,adOfferBonus:0,adPenalty:1,hotBrand:null,fakeWave:false,lostCustomers:0,
     /* 直播带货 */
     lastLiveDay:-99,liveOpen:false,liveTier:null,livePicks:[],liveResult:null,pendingReturns:[],
     /* 同行包展 */
@@ -533,9 +533,11 @@ function mkOffer(){
 
 function genOffers(){
   const nb=hqStaffOf('buyer').length;
-  const total=clamp(nb+2+rint(0,1)+S.bonusOffer,0,7);
+  const ad=S.adOfferBonus||0;       // 昨天投流引来的卖家
+  const total=clamp(3+nb*2+rint(0,1)+S.bonusOffer+ad,0,16);
   S.offers=[];
   for(let i=0;i<total;i++)S.offers.push(mkOffer());
+  S.adOfferBonus=0;                 // 用掉，不累积
   if(total===0)log('今天没人上门送货，货源断档。','warn');
 }
 
@@ -1161,7 +1163,7 @@ function runAd(){
     b=0;S.adBudget=0;
   }
   if(b>0){S.cash-=b;S.daily.ad+=b;S.total.ads+=b;S.total.cost+=b;}
-  let gained=0,viral=false,cust=0;
+  let gained=0,viral=false,cust=0,offers=0;
   if(b>0){
     const rf=rivalAdFactor();                 // 对手在同一个流量池里抬价
     const quality=rnd(0.55,2.0)*S.adPenalty*rf;
@@ -1171,11 +1173,15 @@ function runAd(){
     cust=Math.round(b/900*rnd(0.8,1.5)*quality*(viral?2.2:1));
     if(S.adPenalty<1)gained=Math.round(gained*0.6);
     S.fans=Math.max(0,S.fans+gained);
+    /* 抖音不只拉买家，也带来上门卖货的卖家 —— 二奢行业最主要的收货渠道之一。
+       第二天早上生效（今天的货已经收完了），只保留一天，不累积。 */
+    offers=clamp(Math.round(b/5000*rnd(0.9,1.4)*(viral?1.8:1)),0,8);
+    S.adOfferBonus=offers;
     if(rf<0.95&&S.act<2)log(`📈 「${S.rival.name}」在同城竞价，你的投放效果打了 ${Math.round(rf*100)} 折`,'warn');
   }
-  S.adResult={budget:b,gained,viral,cust};
+  S.adResult={budget:b,gained,viral,cust,offers};
   if(b>0){
-    log(`📱 抖音投放 ${money(b)}：涨粉 ${gained}${viral?' 🔥爆款！':''}，即时到店 ${cust} 人`,viral?'gold':'');
+    log(`📱 抖音投放 ${money(b)}：涨粉 ${gained}${viral?' 🔥爆款！':''}，即时到店 ${cust} 人，明天多 ${offers} 个卖家上门`,viral?'gold':'');
   }else{
     log('📱 今日未投放广告，仅靠自然流量。','');
   }
@@ -2108,7 +2114,7 @@ function stageSell(){
     <div class="card-h"><span>💼 门店营业</span><span class="tag">到店 ${S.customers.length} 人</span></div>
     ${tut('sell','💡 客户出价有高有低。<b>低于你的成本就点「谈价」</b>，谈不成再拒绝。没鉴定过的货卖出去，有被退货索赔的风险。')}`;
   if(S.adResult)h+=`<div class="note ${S.adResult.viral?'good':''}">
-    📱 今日投流 ${money(S.adResult.budget)} · 涨粉 <b>${S.adResult.gained}</b>${S.adResult.viral?' 🔥爆款':''} · 广告带来 ${S.adResult.cust} 位客户</div>`;
+    📱 今日投流 ${money(S.adResult.budget)} · 涨粉 <b>${S.adResult.gained}</b>${S.adResult.viral?' 🔥爆款':''} · 广告带来 ${S.adResult.cust} 位客户${S.adResult.offers?` · <b>明天多 ${S.adResult.offers} 个卖家上门</b>`:''}</div>`;
   if(S.lostCustomers>0)h+=`<div class="note warn">😢 有 <b>${S.lostCustomers}</b> 位客户因为没人接待，转头去了隔壁店。招销售可以提升日接待上限（当前 ${salesCapacity()} 人/天）。</div>`;
   if(S.customers.length===0)h+=`<div class="empty"><span class="e">🚪</span>今天门可罗雀<br><span class="tiny">${S.inventory.length===0?'库存为空，先收货':'加大抖音投放能带来更多客流'}</span></div>`;
   else h+=S.customers.map(customerHTML).join('');
