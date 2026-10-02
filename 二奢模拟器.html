@@ -391,9 +391,11 @@ const salaryOf=s=>Math.round((150+s.skill*110)/10)*10;
 const trainCost=s=>4000*s.skill;
 const hireCost=15000;
 const staffOf=role=>S.staff.filter(s=>s.role===role);
-const bestSkill=role=>staffOf(role).reduce((m,s)=>Math.max(m,s.skill),0);
-/* 门店接待能力：销售人数决定每天最多能成交多少客户 */
-const salesCapacity=()=>3+staffOf('sales').length*2;
+/* 派驻分店的员工不参与总部的收货、鉴定、护理和销售。 */
+const hqStaffOf=role=>S.staff.filter(s=>s.role===role&&!s.branchId);
+const bestSkill=role=>hqStaffOf(role).reduce((m,s)=>Math.max(m,s.skill),0);
+/* 门店接待能力：总部销售人数决定每天最多能成交多少客户 */
+const salesCapacity=()=>3+hqStaffOf('sales').length*2;
 
 function newGame(){
   resetRegions();   // 区域对手复位，避免上一局的战果串到这局
@@ -453,7 +455,7 @@ const trueLabel=it=>it.fake==='genuine'?'真品':(it.fake==='superfake'?'高仿'
    "花钱买了个错答案，系统还当场承认错了"。
    ============================================================ */
 function appraiseAcc(){
-  const n=Math.max(1,staffOf('appraiser').length);
+  const n=Math.max(1,hqStaffOf('appraiser').length);
   return clamp(0.90+bestSkill('appraiser')*0.006+(n-1)*0.020,0.90,1);
 }
 function appraiseRoll(truth){
@@ -530,7 +532,7 @@ function mkOffer(){
 }
 
 function genOffers(){
-  const nb=staffOf('buyer').length;
+  const nb=hqStaffOf('buyer').length;
   const total=clamp(nb+2+rint(0,1)+S.bonusOffer,0,7);
   S.offers=[];
   for(let i=0;i<total;i++)S.offers.push(mkOffer());
@@ -541,7 +543,7 @@ function genOffers(){
 const FAIR_BUY_MUL=0.72;   // 展会批发价 ≈ 市价的 7.2 折（比砍价后的上门收货还便宜）
 const FAIR_DUMP_MUL=0.58;  // 甩货价 = 市价的 58%（比门店零售低得多，换的是"即时 + 不限量"）
 const FAIR_BOOTH_FEE=3000; // 摆摊甩货的展位费
-const fairCap=()=>3+staffOf('buyer').length;  // 一天最多扫几件
+const fairCap=()=>3+hqStaffOf('buyer').length;  // 总部回收师决定一天最多扫几件
 
 function mkFairLot(){
   const bs=bestSkill('buyer');
@@ -680,7 +682,7 @@ const LIVE_TIERS=[
 const liveTier=()=>LIVE_TIERS.find(t=>t.id===S.liveTier)||null;
 const liveCap=()=>{
   const t=liveTier();
-  return clamp(2+staffOf('sales').length*2+(t?t.capBonus:0),1,12);
+  return clamp(2+hqStaffOf('sales').length*2+(t?t.capBonus:0),1,12);
 };
 /* 直播退货率：声望越高越可信，假货必被送检 */
 function liveReturnRate(it){
@@ -921,9 +923,14 @@ function openBranch(regionId){
 function assignManager(regionId,uid){
   const b=S.branches.find(x=>x.regionId===regionId);
   if(!b)return;
+  const managerId=uid?Number(uid):null;
+  const m=managerId?S.staff.find(s=>s.uid===managerId):null;
+  if(managerId&&!m)return;
+  // 新店长若原本驻守其他分店，必须同时清空原店的 managerId。
+  S.branches.forEach(x=>{if(x.regionId!==regionId&&x.managerId===managerId)x.managerId=null;});
   S.staff.forEach(s=>{if(s.branchId===regionId)s.branchId=null;});
-  b.managerId=uid?Number(uid):null;
-  if(b.managerId){const m=S.staff.find(s=>s.uid===b.managerId);if(m)m.branchId=regionId;}
+  b.managerId=managerId;
+  if(m)m.branchId=regionId;
   render();
 }
 function closeBranch(regionId){
@@ -1109,7 +1116,7 @@ function actOffer(oid,act){
 }
 
 /* ---------------- 护理 ---------------- */
-function careCapacity(){return staffOf('care').length*2;}
+function careCapacity(){return hqStaffOf('care').length*2;}
 function careUsedToday(){return S.daily.care;}
 function actCare(id){
   const it=S.inventory.find(x=>x.id===id);
@@ -1345,7 +1352,9 @@ function nextDay(){
 /* ---------------- 估值与评级 ---------------- */
 const itemValue=it=>(isKnownFake(it))?Math.round(it.cost*0.05):marketOf(it);
 function netWorth(){
-  return S.cash+S.inventory.reduce((a,it)=>a+itemValue(it),0);
+  const inv=S.inventory.reduce((a,it)=>a+itemValue(it),0);
+  const branches=S.branches.reduce((a,b)=>a+branchValue(b),0);
+  return S.cash+inv+branches;
 }
 function rankOf(nw){
   if(nw<650000)return{r:'勉强糊口',c:'#5d7a6e',ic:'😅',d:'这一年白忙活了，房租都差点交不上。二奢这行，光有热情不够。'};
@@ -1571,11 +1580,18 @@ function noteVisit(p){
 const SAVE_KEY='ershe_save';
 const SAVE_VER=1;
 
+function snapshotRegionRivals(){
+  return REGIONS.filter(r=>r.rival).map(r=>({id:r.id,power:r.rival.power}));
+}
+function restoreRegionRivals(snapshot){
+  if(!Array.isArray(snapshot))return;
+  snapshot.forEach(x=>{const r=regionOf(x.id);if(r.rival&&typeof x.power==='number')r.rival.power=clamp(x.power,0,100);});
+}
 function saveGame(){
   try{
     if(!S||!S.started||S.over)return false;
     // Infinity 过不了 JSON，用哨兵替换（第二幕的 maxDay 是 Infinity）
-    const data=JSON.stringify({v:SAVE_VER,s:S},function(k,val){
+    const data=JSON.stringify({v:SAVE_VER,s:S,regionRivals:snapshotRegionRivals()},function(k,val){
       return val===Infinity?'__INF__':val;
     });
     localStorage.setItem(SAVE_KEY,data);
@@ -1596,6 +1612,7 @@ function loadGame(){
     if(typeof st.day!=='number'||!Array.isArray(st.staff)||!Array.isArray(st.inventory)
        ||!Array.isArray(st.offers)||!Array.isArray(st.customers)) return null;
     if(!st.rival||typeof st.share!=='number'||!st.daily)return null;
+    restoreRegionRivals(o.regionRivals);
     return st;
   }catch(e){ return null; }
 }
@@ -1788,7 +1805,7 @@ function stageFair(){
   h+=`<div style="font-weight:800;font-size:13px;color:var(--brand);margin:14px 0 8px">🛒 扫货区 · 批发价约为市场售价的 72%</div>`;
   h+=tut('fair','💡 展会扫货 <b>比砍价还便宜</b>，但现场 <b>不能砍价</b>，同行口碑只有 42~64% 准。拿不准就 <b>花钱找人看</b> —— 贵，但 100% 准。');
   h+=S.fairLots.map(lotHTML).join('');
-  h+=`<div class="tiny muted" style="margin-bottom:6px">回收师 ${staffOf('buyer').length} 人 · 今天最多拿 ${cap} 件 · 已拿 ${bought} 件</div>`;
+  h+=`<div class="tiny muted" style="margin-bottom:6px">回收师 ${hqStaffOf('buyer').length} 人 · 今天最多拿 ${cap} 件 · 已拿 ${bought} 件</div>`;
 
   h+=`<div class="hr"></div>
     <div style="font-weight:800;font-size:13px;color:var(--brand);margin:0 0 8px">📤 甩货区 · 一次性清库存</div>`;
@@ -1945,7 +1962,7 @@ function stageCollect(){
   h+=S.offers.map(offerHTML).join('');
   h+=`<div class="hr"></div>
     <div class="between">
-      <span class="tiny muted">回收师 ${staffOf('buyer').length} 人 · 初判准确率约 ${Math.round(clamp(0.50+bestSkill('buyer')*0.035,0.5,0.86)*100)}%</span>
+      <span class="tiny muted">回收师 ${hqStaffOf('buyer').length} 人 · 初判准确率约 ${Math.round(clamp(0.50+bestSkill('buyer')*0.035,0.5,0.86)*100)}%</span>
       <button class="btn gold" onclick="goNext('collect')">结束收货 →</button>
     </div></div>`;
   return h;
@@ -2016,7 +2033,7 @@ function offerHTML(o){
     <div class="grid2" style="margin-top:10px">
       <button class="btn gold" onclick="actOffer(${o.oid},'buy')">💰 直接收下${margin<0?' (亏)':''}</button>
       <button class="btn ${o.haggleUsed?'ghost':'gold'}" onclick="actOffer(${o.oid},'haggle')" ${o.haggleUsed?'disabled':''}>💬 压价（成功 ${Math.round(hagP*100)}%）</button>
-      ${staffOf('appraiser').length>0
+      ${hqStaffOf('appraiser').length>0
         ? `<button class="btn" onclick="actOffer(${o.oid},'appraise')" ${o.appraised?'disabled':''} title="自家鉴定师，不另收费。准确率 ${Math.round(appraiseAcc()*100)}%">🔍 自家鉴定<span class="tiny muted"> 免费</span></button>`
         : `<button class="btn" disabled title="店里没有鉴定师">🔍 自家鉴定（无鉴定师）</button>`}
       <button class="btn gold" onclick="actOffer(${o.oid},'appraiseExt')" ${o.appraised?'disabled':''} title="花钱找人看，100% 准确">💰 找人看 ${money(extFee)}</button>
@@ -2031,7 +2048,7 @@ function stageCare(){
     <div class="card-h"><span>💧 护理工坊</span><span class="tag">今日名额 ${used}/${cap}</span></div>
     ${tut('care','💡 护理能 <b>提升品相</b>，品相越好卖得越贵。每个包只能护理一次，名额由护理师人数决定。')}
     <div class="note tiny">护理能提升品相（售价上涨约 8%~12%）。护理费为公价的 2%，每个包只能护理一次。</div>`;
-  if(staffOf('care').length===0)h+=`<div class="empty"><span class="e">🚫</span>没有护理师，无法护理</div>`;
+  if(hqStaffOf('care').length===0)h+=`<div class="empty"><span class="e">🚫</span>没有护理师，无法护理</div>`;
   const list=S.inventory.filter(it=>it.careUsed<1);
   if(S.inventory.length===0)h+=`<div class="empty"><span class="e">📦</span>库存空空，先去收货</div>`;
   else if(list.length===0)h+=`<div class="empty"><span class="e">✅</span>所有包都护理过了</div>`;
@@ -2050,7 +2067,7 @@ function stageCare(){
     </div>`;
   }).join('');
   h+=`<div class="hr"></div><div class="between">
-    <span class="tiny muted">护理师 ${staffOf('care').length} 人 · 每日名额 ${cap}</span>
+    <span class="tiny muted">护理师 ${hqStaffOf('care').length} 人 · 每日名额 ${cap}</span>
     <button class="btn gold" onclick="goNext('care')">进入投流 →</button></div></div>`;
   return h;
 }
@@ -2093,7 +2110,7 @@ function stageSell(){
   else h+=S.customers.map(customerHTML).join('');
   const left=S.customers.filter(c=>c.status==='pending').length;
   h+=`<div class="hr"></div><div class="between">
-    <span class="tiny muted">销售 ${staffOf('sales').length} 人 · 今日剩余客户 ${left}</span>
+    <span class="tiny muted">销售 ${hqStaffOf('sales').length} 人 · 今日剩余客户 ${left}</span>
     <button class="btn gold" onclick="goNext('sell')">打烊结算 →</button></div></div>`;
   return h;
 }
@@ -2137,8 +2154,8 @@ function customerHTML(c){
 function stageSettle(){
   const d=S.daily;
   const gross=d.rev;
-  const out=d.ad+d.wage+d.rent;
-  const net=gross-out;
+  // d.cost 已包含总部所有现金支出；分店成本单独记在 branchCost。
+  const net=d.rev+d.branchRev-d.cost-d.branchCost;
   return `${tut('settle','💡 每天要扣 <b>工资和房租</b>。现金一旦变成负数，就直接 <b>破产出局</b>。')}<div class="card">
     <div class="card-h"><span>📄 第 ${S.day} 天 · 日结账单</span><span class="tag">${S.act>=2?('已垄断 '+S.total.regionWins+'/'+totalRegions()+' 区域'):(S.day<S.maxDay?'还有 '+(S.maxDay-S.day)+' 天':'最后一天')}</span></div>
     <div class="kv"><span>💰 门店销售回款</span><b class="pos">+${money(gross)}</b></div>
@@ -2157,7 +2174,7 @@ function stageSettle(){
     <div class="kv"><span>🏠 店铺租金</span><b class="neg">-${money(d.rent)}</b></div>
     <div class="hr"></div>
     <div class="between" style="font-size:15px;font-weight:800">
-      <span>当日净流水（不含库存占用）</span>
+      <span>当日净现金流</span>
       <span class="${net>=0?'pos':'neg'}">${net>=0?'+':''}${money(net)}</span>
     </div>
     <div style="margin-top:12px" class="kv"><span>📦 库存件数 / 估值</span><b>${S.inventory.length} 件 · ${money(S.inventory.reduce((a,it)=>a+itemValue(it),0))}</b></div>
@@ -2441,7 +2458,7 @@ function renderInv(){
       </div>
       <div style="display:flex;flex-direction:column;gap:4px">
         ${knowsFake?`<button class="btn sm red" onclick="actTorch(${it.id})" title="砸掉它，换一点心安">销毁</button>`:''}
-        ${staffOf('appraiser').length>0
+        ${hqStaffOf('appraiser').length>0
           ? `<button class="btn sm" onclick="actVerify(${it.id})" title="自家鉴定师，免费。准确率 ${Math.round(appraiseAcc()*100)}%">${it.verified?'复检':'鉴定'}</button>`
           : `<button class="btn sm" disabled title="店里没有鉴定师">无鉴定师</button>`}
         <button class="btn sm gold" onclick="actVerifyExt(${it.id})" title="花钱找人看，100% 准确，花费 ${money(vext)}">找人看</button>
@@ -2803,7 +2820,7 @@ function renderOver(){
       <div class="kv"><span>期末现金</span><b>${money(S.cash)}</b></div>
       <div class="kv"><span>老店库存估值（${S.inventory.length} 件）</span><b>${money(invVal)}</b></div>
       ${S.branches.length?`<div class="kv"><span>分店资产（${S.branches.length} 家）</span><b>${money(branchVal)}</b></div>`:''}
-      <div class="kv"><span>净资产</span><b class="gold-t" style="font-size:16px">${money(nw+branchVal)}</b></div>
+      <div class="kv"><span>净资产</span><b class="gold-t" style="font-size:16px">${money(nw)}</b></div>
       <div class="hr"></div>
       <div class="kv"><span>累计销售额</span><b class="pos">${money(t.rev)}</b></div>
       <div class="kv"><span>累计支出（收货+广告+工资+租金+竞争）</span><b class="neg">${money(t.cost)}</b></div>
