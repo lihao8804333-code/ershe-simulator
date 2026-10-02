@@ -2001,7 +2001,11 @@ function offerHTML(o){
       body+=`<div class="note" style="border-color:#c6dcd1;color:#5d7a6e;background:#f6fbf8">
         鉴定结果：<b>拿不准 🤔</b>　<span class="tiny">这家看不出来。换个更靠谱的鉴定师，或者自己拿主意。</span></div>`;
     }else{
-      const col=r==='genuine'?['#12a06e','rgba(18,160,110,.10)']:(r==='superfake'?['#0e8a5f','rgba(14,138,95,.10)']:['#dc2626','rgba(220,38,38,.09)']);
+      /* 三档颜色：真品绿 / 高仿琥珀 / 假货红。
+         高仿不能跟着真品用绿色 —— 它也是假货，只是更难看出来。 */
+      const col=r==='genuine'?['#12a06e','rgba(18,160,110,.10)']
+               :r==='superfake'?['#b45309','rgba(217,119,6,.11)']
+               :['#dc2626','rgba(220,38,38,.09)'];
       body+=`<div class="note" style="border-color:${col[0]};color:${col[0]};background:${col[1]}">
         鉴定结果：<b>${r==='genuine'?'真品 ✅':r==='superfake'?'高仿 ⚠️':'假货 ❌'}</b></div>`;
     }
